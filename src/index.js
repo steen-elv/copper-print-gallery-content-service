@@ -6,6 +6,7 @@ const winston = require('winston');
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 const galleryRoutes = require('./routes/galleryRoutes');
 const artworkRoutes = require('./routes/artworkRoutes');
+const sequelize = require('./config/database');
 
 // Configure Winston logger
 const logger = winston.createLogger({
@@ -43,8 +44,16 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-    logger.info(`Server running on port ${PORT}`);
-});
+// Database connection and server start
+sequelize.sync({ force: false }) // Set force to true to drop and recreate tables on every app start
+    .then(() => {
+        app.listen(PORT, () => {
+            logger.info(`Server running on port ${PORT}`);
+            logger.info('Database connected successfully');
+        });
+    })
+    .catch((error) => {
+        logger.error('Unable to connect to the database:', error);
+    });
 
 module.exports = app; // for testing

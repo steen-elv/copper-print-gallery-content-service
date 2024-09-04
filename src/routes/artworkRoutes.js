@@ -2,24 +2,11 @@
 
 const express = require('express');
 const router = express.Router();
+const { getArtworks, createArtwork, updateArtwork, deleteArtwork } = require('../controllers/artworkController');
 
-// TODO: Implement artwork controllers
-// const { getArtworks, createArtwork, updateArtwork, deleteArtwork } = require('../controllers/artworkController');
-
-router.get('/', (req, res) => {
-  res.json({ message: 'Get artworks route' });
-});
-
-router.post('/', (req, res) => {
-  res.json({ message: 'Create artwork route' });
-});
-
-router.put('/:id', (req, res) => {
-  res.json({ message: 'Update artwork route' });
-});
-
-router.delete('/:id', (req, res) => {
-  res.json({ message: 'Delete artwork route' });
-});
+router.get('/', getArtworks);
+router.post('/', createArtwork);
+router.put('/:id', updateArtwork);
+router.delete('/:id', deleteArtwork);
 
 module.exports = router;
