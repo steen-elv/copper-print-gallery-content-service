@@ -64,6 +64,37 @@ exports.getGallery = async (req, res, next) => {
   }
 };
 
+exports.getPrints = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 20, language, technique, year, plateType, paperType } = req.query;
+    const offset = (page - 1) * limit;
+
+    let whereClause = { status: 'published' };
+    if (technique) whereClause.technique = technique;
+    if (year) whereClause.year = parseInt(year);
+    if (plateType) whereClause.plateType = plateType;
+    if (paperType) whereClause.paperType = paperType;
+
+    const prints = await Print.findAndCountAll({
+      where: whereClause,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']],
+      attributes: ['id', 'title', 'description', 'technique', 'plateType', 'dimensions', 'year', 'editionSize', 'paperType', 'thumbnailUrl', 'createdAt', 'updatedAt'],
+      distinct: true
+    });
+
+    res.json({
+      prints: prints.rows,
+      totalCount: prints.count,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(prints.count / limit)
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getPrint = async (req, res, next) => {
   try {
     const { printId } = req.params;
@@ -82,10 +113,10 @@ exports.getPrint = async (req, res, next) => {
 
     // Handle imageVersion
     if (imageVersion) {
-      if (responseData.images[imageVersion]) {
+      if (responseData.images && responseData.images[imageVersion]) {
         responseData.images = { [imageVersion]: responseData.images[imageVersion] };
       } else {
-        return res.status(400).json({ message: 'Requested image version not found' });
+        delete responseData.images;
       }
     }
 
@@ -97,42 +128,36 @@ exports.getPrint = async (req, res, next) => {
   }
 };
 
-// Update getPrints method to include image versions
-exports.getPrints = async (req, res, next) => {
+exports.getGalleryPrints = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, language, galleryId, technique, year, plateType, paperType, imageVersion } = req.query;
+    const { galleryId } = req.params;
+    const { page = 1, limit = 20, language } = req.query;
     const offset = (page - 1) * limit;
 
-    let whereClause = { status: 'published' };
-    if (galleryId) whereClause['$Galleries.id$'] = galleryId;
-    if (technique) whereClause.technique = technique;
-    if (year) whereClause.year = year;
-    if (plateType) whereClause.plateType = plateType;
-    if (paperType) whereClause.paperType = paperType;
-
-    const prints = await Print.findAndCountAll({
-      where: whereClause,
-      include: [{ model: Gallery, attributes: [], through: { attributes: [] } }],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [['createdAt', 'DESC']],
-      attributes: ['id', 'title', 'description', 'technique', 'plateType', 'dimensions', 'year', 'editionSize', 'paperType', 'images', 'createdAt', 'updatedAt'],
-      distinct: true
+    const gallery = await Gallery.findOne({
+      where: { id: galleryId, status: 'published' },
+      include: [{
+        model: Print,
+        where: { status: 'published' },
+        through: { attributes: ['order'] },
+        attributes: ['id', 'title', 'thumbnailUrl'],
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        order: [[GalleryPrint, 'order', 'ASC']]
+      }]
     });
 
-    let responseData = prints.rows.map(print => {
-      let printData = print.toJSON();
-      if (imageVersion) {
-        printData.images = printData.images[imageVersion] ? { [imageVersion]: printData.images[imageVersion] } : {};
-      }
-      return printData;
-    });
+    if (!gallery) {
+      return res.status(404).json({ message: 'Gallery not found' });
+    }
+
+    const totalPrints = await gallery.countPrints({ where: { status: 'published' } });
 
     res.json({
-      prints: responseData,
-      totalCount: prints.count,
+      prints: gallery.Prints,
+      totalCount: totalPrints,
       currentPage: parseInt(page),
-      totalPages: Math.ceil(prints.count / limit)
+      totalPages: Math.ceil(totalPrints / limit)
     });
   } catch (error) {
     next(error);
