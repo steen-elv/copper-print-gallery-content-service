@@ -50,8 +50,16 @@ const Print = sequelize.define('Print', {
   artistNotes: {
     type: DataTypes.TEXT
   },
-  thumbnailUrl: {
-    type: DataTypes.STRING
+  images: {
+    type: DataTypes.JSON,
+    defaultValue: {},
+    get() {
+      const rawValue = this.getDataValue('images');
+      return rawValue ? JSON.parse(rawValue) : {};
+    },
+    set(value) {
+      this.setDataValue('images', JSON.stringify(value));
+    }
   }
 }, {
   timestamps: true

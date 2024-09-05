@@ -64,9 +64,43 @@ exports.getGallery = async (req, res, next) => {
   }
 };
 
+exports.getPrint = async (req, res, next) => {
+  try {
+    const { printId } = req.params;
+    const { language, imageVersion } = req.query;
+
+    const print = await Print.findOne({
+      where: { id: printId, status: 'published' },
+      attributes: ['id', 'title', 'description', 'technique', 'plateType', 'dimensions', 'year', 'editionSize', 'paperType', 'images', 'createdAt', 'updatedAt']
+    });
+
+    if (!print) {
+      return res.status(404).json({ message: 'Print not found' });
+    }
+
+    let responseData = print.toJSON();
+
+    // Handle imageVersion
+    if (imageVersion) {
+      if (responseData.images[imageVersion]) {
+        responseData.images = { [imageVersion]: responseData.images[imageVersion] };
+      } else {
+        return res.status(400).json({ message: 'Requested image version not found' });
+      }
+    }
+
+    // TODO: Handle language parameter for multilingual content
+
+    res.json(responseData);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Update getPrints method to include image versions
 exports.getPrints = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, language, galleryId, technique, year, plateType, paperType } = req.query;
+    const { page = 1, limit = 20, language, galleryId, technique, year, plateType, paperType, imageVersion } = req.query;
     const offset = (page - 1) * limit;
 
     let whereClause = { status: 'published' };
@@ -82,40 +116,24 @@ exports.getPrints = async (req, res, next) => {
       limit: parseInt(limit),
       offset: parseInt(offset),
       order: [['createdAt', 'DESC']],
-      attributes: ['id', 'title', 'description', 'technique', 'plateType', 'dimensions', 'year', 'editionSize', 'paperType', 'thumbnailUrl', 'createdAt', 'updatedAt'],
+      attributes: ['id', 'title', 'description', 'technique', 'plateType', 'dimensions', 'year', 'editionSize', 'paperType', 'images', 'createdAt', 'updatedAt'],
       distinct: true
     });
 
+    let responseData = prints.rows.map(print => {
+      let printData = print.toJSON();
+      if (imageVersion) {
+        printData.images = printData.images[imageVersion] ? { [imageVersion]: printData.images[imageVersion] } : {};
+      }
+      return printData;
+    });
+
     res.json({
-      prints: prints.rows,
+      prints: responseData,
       totalCount: prints.count,
       currentPage: parseInt(page),
       totalPages: Math.ceil(prints.count / limit)
     });
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.getPrint = async (req, res, next) => {
-  try {
-    const { printId } = req.params;
-    const { language, imageVersion } = req.query;
-
-    const print = await Print.findOne({
-      where: { id: printId, status: 'published' },
-      attributes: ['id', 'title', 'description', 'technique', 'plateType', 'dimensions', 'year', 'editionSize', 'paperType', 'thumbnailUrl', 'createdAt', 'updatedAt']
-    });
-
-    if (!print) {
-      return res.status(404).json({ message: 'Print not found' });
-    }
-
-    // TODO: Handle imageVersion logic here
-    // This would involve fetching the appropriate image URL based on the requested version
-    // For now, we'll just return the thumbnailUrl
-
-    res.json(print);
   } catch (error) {
     next(error);
   }
