@@ -4,8 +4,9 @@ const express = require('express');
 const cors = require('cors');
 const winston = require('winston');
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
-const galleryRoutes = require('./routes/galleryRoutes');
-const artworkRoutes = require('./routes/artworkRoutes');
+const publicRoutes = require('./routes/publicRoutes');
+const artistRoutes = require('./routes/artistRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const sequelize = require('./config/database');
 
 // Configure Winston logger
@@ -35,8 +36,9 @@ app.use((req, res, next) => {
 });
 
 // Routes
-app.use('/api/galleries', galleryRoutes);
-app.use('/api/artworks', artworkRoutes);
+app.use('/api/v1', publicRoutes);
+app.use('/api/v1', artistRoutes); // Note: This will need authentication middleware
+app.use('/api/v1', adminRoutes);  // Note: This will need authentication middleware
 
 // Error handling
 app.use(notFound);
@@ -45,7 +47,7 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 3000;
 
 // Database connection and server start
-sequelize.sync({ force: false }) // Set force to true to drop and recreate tables on every app start
+sequelize.sync({ force: false })
     .then(() => {
         app.listen(PORT, () => {
             logger.info(`Server running on port ${PORT}`);

@@ -19,7 +19,13 @@ const Gallery = sequelize.define('Gallery', {
   status: {
     type: DataTypes.ENUM('draft', 'published'),
     defaultValue: 'draft'
+  },
+  printCount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
   }
+}, {
+  timestamps: true
 });
 
 module.exports = Gallery;

@@ -1,9 +1,9 @@
-// src/models/artwork.js
+// src/models/print.js
 
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const Artwork = sequelize.define('Artwork', {
+const Print = sequelize.define('Print', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
@@ -19,19 +19,42 @@ const Artwork = sequelize.define('Artwork', {
   technique: {
     type: DataTypes.STRING
   },
+  plateType: {
+    type: DataTypes.STRING
+  },
   dimensions: {
     type: DataTypes.STRING
   },
   year: {
     type: DataTypes.INTEGER
   },
-  imageUrl: {
+  editionSize: {
+    type: DataTypes.INTEGER
+  },
+  editionNumber: {
+    type: DataTypes.INTEGER
+  },
+  paperType: {
+    type: DataTypes.STRING
+  },
+  inkType: {
+    type: DataTypes.STRING
+  },
+  printingPress: {
     type: DataTypes.STRING
   },
   status: {
     type: DataTypes.ENUM('draft', 'published'),
     defaultValue: 'draft'
+  },
+  artistNotes: {
+    type: DataTypes.TEXT
+  },
+  thumbnailUrl: {
+    type: DataTypes.STRING
   }
+}, {
+  timestamps: true
 });
 
-module.exports = Artwork;
+module.exports = Print;
