@@ -4,13 +4,16 @@ const { Gallery, Print } = require('../models');
 
 exports.getGalleries = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, language } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const { language } = req.query;
+
     const offset = (page - 1) * limit;
 
     const galleries = await Gallery.findAndCountAll({
       where: { status: 'published' },
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      limit: limit,
+      offset: offset,
       order: [['updatedAt', 'DESC']],
       attributes: ['id', 'title', 'description', 'printCount', 'createdAt', 'updatedAt']
     });
@@ -18,7 +21,7 @@ exports.getGalleries = async (req, res, next) => {
     res.json({
       galleries: galleries.rows,
       totalCount: galleries.count,
-      currentPage: parseInt(page),
+      currentPage: page,
       totalPages: Math.ceil(galleries.count / limit)
     });
   } catch (error) {
