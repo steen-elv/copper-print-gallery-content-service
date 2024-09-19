@@ -1,7 +1,6 @@
 // src/controllers/publicController.js
 
-const { Gallery, Print, GalleryPrint } = require('../models');
-const { Op } = require('sequelize');
+const { Gallery, Print } = require('../models');
 
 exports.getGalleries = async (req, res, next) => {
   try {
@@ -30,19 +29,10 @@ exports.getGalleries = async (req, res, next) => {
 exports.getGallery = async (req, res, next) => {
   try {
     const { galleryId } = req.params;
-    const { page = 1, limit = 20, language } = req.query;
-    const offset = (page - 1) * limit;
+    const { language } = req.query;
 
     const gallery = await Gallery.findOne({
       where: { id: galleryId, status: 'published' },
-      include: [{
-        model: Print,
-        through: { attributes: ['order'] },
-        attributes: ['id', 'title', 'thumbnailUrl'],
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        order: [[GalleryPrint, 'order', 'ASC']]
-      }],
       attributes: ['id', 'title', 'description', 'printCount', 'createdAt', 'updatedAt']
     });
 
@@ -50,15 +40,7 @@ exports.getGallery = async (req, res, next) => {
       return res.status(404).json({ message: 'Gallery not found' });
     }
 
-    const totalPrints = await gallery.countPrints();
-
-    res.json({
-      ...gallery.toJSON(),
-      prints: gallery.Prints,
-      totalCount: totalPrints,
-      currentPage: parseInt(page),
-      totalPages: Math.ceil(totalPrints / limit)
-    });
+    res.json(gallery);
   } catch (error) {
     next(error);
   }
@@ -66,10 +48,11 @@ exports.getGallery = async (req, res, next) => {
 
 exports.getPrints = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, language, technique, year, plateType, paperType } = req.query;
+    const { page = 1, limit = 20, language, galleryId, technique, year, plateType, paperType } = req.query;
     const offset = (page - 1) * limit;
 
     let whereClause = { status: 'published' };
+    if (galleryId) whereClause.galleryId = galleryId;
     if (technique) whereClause.technique = technique;
     if (year) whereClause.year = parseInt(year);
     if (plateType) whereClause.plateType = plateType;
@@ -80,8 +63,7 @@ exports.getPrints = async (req, res, next) => {
       limit: parseInt(limit),
       offset: parseInt(offset),
       order: [['createdAt', 'DESC']],
-      attributes: ['id', 'title', 'description', 'technique', 'plateType', 'dimensions', 'year', 'editionSize', 'paperType', 'thumbnailUrl', 'createdAt', 'updatedAt'],
-      distinct: true
+      attributes: ['id', 'title', 'description', 'technique', 'plateType', 'dimensions', 'year', 'editionSize', 'paperType', 'thumbnailUrl', 'createdAt', 'updatedAt']
     });
 
     res.json({
@@ -112,53 +94,15 @@ exports.getPrint = async (req, res, next) => {
     let responseData = print.toJSON();
 
     // Handle imageVersion
-    if (imageVersion) {
-      if (responseData.images && responseData.images[imageVersion]) {
+    if (imageVersion && responseData.images) {
+      if (responseData.images[imageVersion]) {
         responseData.images = { [imageVersion]: responseData.images[imageVersion] };
       } else {
         delete responseData.images;
       }
     }
 
-    // TODO: Handle language parameter for multilingual content
-
     res.json(responseData);
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.getGalleryPrints = async (req, res, next) => {
-  try {
-    const { galleryId } = req.params;
-    const { page = 1, limit = 20, language } = req.query;
-    const offset = (page - 1) * limit;
-
-    const gallery = await Gallery.findOne({
-      where: { id: galleryId, status: 'published' },
-      include: [{
-        model: Print,
-        where: { status: 'published' },
-        through: { attributes: ['order'] },
-        attributes: ['id', 'title', 'thumbnailUrl'],
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        order: [[GalleryPrint, 'order', 'ASC']]
-      }]
-    });
-
-    if (!gallery) {
-      return res.status(404).json({ message: 'Gallery not found' });
-    }
-
-    const totalPrints = await gallery.countPrints({ where: { status: 'published' } });
-
-    res.json({
-      prints: gallery.Prints,
-      totalCount: totalPrints,
-      currentPage: parseInt(page),
-      totalPages: Math.ceil(totalPrints / limit)
-    });
   } catch (error) {
     next(error);
   }
