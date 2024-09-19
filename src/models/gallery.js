@@ -9,23 +9,24 @@ const Gallery = sequelize.define('Gallery', {
     primaryKey: true,
     autoIncrement: true
   },
-  title: {
-    type: DataTypes.STRING,
+  artist_id: {
+    type: DataTypes.INTEGER,
     allowNull: false
   },
-  description: {
-    type: DataTypes.TEXT
+  created_at: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   },
-  status: {
-    type: DataTypes.ENUM('draft', 'published'),
-    defaultValue: 'draft'
+  updated_at: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   },
-  printCount: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0
+  last_indexed: {
+    type: DataTypes.DATE
   }
 }, {
-  timestamps: true
+  tableName: 'GALLERY',
+  timestamps: false
 });
 
 module.exports = Gallery;

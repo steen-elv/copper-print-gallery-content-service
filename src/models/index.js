@@ -2,34 +2,29 @@
 
 const Artist = require('./artist');
 const Gallery = require('./gallery');
-const Print = require('./print');
-const sequelize = require('../config/database');
-const {DataTypes} = require("sequelize");
+const Artwork = require('./artwork');
+const GalleryArtwork = require('./galleryArtwork');
 
-// Artist associations
-Artist.hasMany(Gallery);
-Artist.hasMany(Print);
+Artist.hasMany(Gallery, { foreignKey: 'artist_id' });
+Gallery.belongsTo(Artist, { foreignKey: 'artist_id' });
 
-// Gallery associations
-Gallery.belongsTo(Artist);
-Gallery.belongsToMany(Print, {through: 'GalleryPrint', as: 'prints'});
+Artist.hasMany(Artwork, { foreignKey: 'artist_id' });
+Artwork.belongsTo(Artist, { foreignKey: 'artist_id' });
 
-// Print associations
-Print.belongsTo(Artist);
-Print.belongsToMany(Gallery, {through: 'GalleryPrint', as: 'galleries'});
-
-// Define the GalleryPrint model for the many-to-many relationship
-const GalleryPrint = sequelize.define('GalleryPrint', {
-    order: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        defaultValue: 0
-    }
+Gallery.belongsToMany(Artwork, {
+    through: GalleryArtwork,
+    foreignKey: 'gallery_id',
+    otherKey: 'artwork_id'
+});
+Artwork.belongsToMany(Gallery, {
+    through: GalleryArtwork,
+    foreignKey: 'artwork_id',
+    otherKey: 'gallery_id'
 });
 
 module.exports = {
     Artist,
     Gallery,
-    Print,
-    GalleryPrint
+    Artwork,
+    GalleryArtwork
 };

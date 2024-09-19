@@ -9,38 +9,39 @@ const Artist = sequelize.define('Artist', {
     primaryKey: true,
     autoIncrement: true
   },
-  keycloakId: {
-    type: DataTypes.STRING,
-    unique: true
+  keycloak_id: {
+    type: DataTypes.STRING(255),
+    unique: true,
+    allowNull: false
   },
   username: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true
+    type: DataTypes.STRING(100),
+    unique: true,
+    allowNull: false
   },
   email: {
-    type: DataTypes.STRING,
-    allowNull: false,
+    type: DataTypes.STRING(255),
     unique: true,
-    validate: {
-      isEmail: true
-    }
+    allowNull: false
   },
-  firstName: {
-    type: DataTypes.STRING
+  default_language: {
+    type: DataTypes.STRING(10),
+    allowNull: false
   },
-  lastName: {
-    type: DataTypes.STRING
+  created_at: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   },
-  defaultLanguage: {
-    type: DataTypes.ENUM('en', 'da'),
-    defaultValue: 'en'
+  updated_at: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   },
-  lastIndexed: {
+  last_indexed: {
     type: DataTypes.DATE
   }
 }, {
-  timestamps: true
+  tableName: 'ARTIST',
+  timestamps: false
 });
 
 module.exports = Artist;
