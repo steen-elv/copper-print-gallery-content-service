@@ -1,0 +1,441 @@
+openapi: 3.1.0
+info:
+  title: Copper Print Gallery Public API
+  version: 1.0.0
+  description: API for public access to galleries and copper print artworks in the Copper Print Gallery system
+
+servers:
+  - url: '{protocol}://{environment}.{domain}/api/v1'
+    variables:
+      protocol:
+        enum:
+          - http
+          - https
+        default: https
+      environment:
+        enum:
+          - dev
+          - staging
+          - prod
+        default: prod
+      domain:
+        default: api.copperprintgallery.com
+        description: Base domain for the API
+
+paths:
+  /galleries:
+    get:
+      summary: List copper print galleries
+      description: Retrieves a list of all copper print galleries
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/language'
+      responses:
+        '200':
+          $ref: '#/components/responses/GalleryListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /galleries/{galleryId}:
+    get:
+      summary: Get copper print gallery details
+      description: Retrieves details of a specific copper print gallery, including ordered prints
+      parameters:
+        - $ref: '#/components/parameters/galleryId'
+        - $ref: '#/components/parameters/language'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/GalleryDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /prints:
+    get:
+      summary: List copper prints
+      description: Retrieves a list of all copper prints
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/language'
+        - $ref: '#/components/parameters/galleryId'
+        - $ref: '#/components/parameters/technique'
+        - $ref: '#/components/parameters/year'
+        - $ref: '#/components/parameters/plateType'
+        - $ref: '#/components/parameters/paperType'
+      responses:
+        '200':
+          $ref: '#/components/responses/PrintListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /prints/{printId}:
+    get:
+      summary: Get copper print details
+      description: Retrieves details of a specific copper print
+      parameters:
+        - $ref: '#/components/parameters/printId'
+        - $ref: '#/components/parameters/language'
+        - $ref: '#/components/parameters/imageVersion'
+      responses:
+        '200':
+          $ref: '#/components/responses/PrintDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  schemas:
+    PublicGallery:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        printCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PublicGalleryDetail:
+      allOf:
+        - $ref: '#/components/schemas/PublicGallery'
+        - type: object
+          properties:
+            prints:
+              type: array
+              items:
+                $ref: '#/components/schemas/PublicOrderedPrintSummary'
+
+    PublicOrderedPrintSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        thumbnailUrl:
+          type: string
+        order:
+          type: integer
+
+    PublicGalleryList:
+      type: object
+      properties:
+        galleries:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicGallery'
+        totalCount:
+          type: integer
+        currentPage:
+          type: integer
+        totalPages:
+          type: integer
+
+    PublicPrint:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        technique:
+          type: string
+        plateType:
+          type: string
+        dimensions:
+          type: string
+        year:
+          type: integer
+        editionSize:
+          type: integer
+        paperType:
+          type: string
+        thumbnailUrl:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PublicPrintDetail:
+      allOf:
+        - $ref: '#/components/schemas/PublicPrint'
+        - type: object
+          properties:
+            images:
+              type: array
+              items:
+                $ref: '#/components/schemas/ImageVersion'
+
+    PublicPrintList:
+      type: object
+      properties:
+        prints:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicOrderedPrintSummary'
+        totalCount:
+          type: integer
+        currentPage:
+          type: integer
+        totalPages:
+          type: integer
+
+    PublicPrintSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        thumbnailUrl:
+          type: string
+
+    ImageVersion:
+      type: object
+      properties:
+        version:
+          type: string
+        url:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+  parameters:
+    page:
+      in: query
+      name: page
+      schema:
+        type: integer
+        minimum: 1
+      description: Page number for pagination
+    limit:
+      in: query
+      name: limit
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+      description: Number of items per page
+    language:
+      in: query
+      name: language
+      schema:
+        type: string
+        enum: [en, da]
+      description: Language code for localized content
+    galleryId:
+      in: path
+      name: galleryId
+      required: true
+      schema:
+        type: integer
+      description: Unique identifier of the gallery
+    printId:
+      in: path
+      name: printId
+      required: true
+      schema:
+        type: integer
+      description: Unique identifier of the print
+    technique:
+      in: query
+      name: technique
+      schema:
+        type: string
+      description: Filter prints by technique (e.g., etching, aquatint, mezzotint)
+    year:
+      in: query
+      name: year
+      schema:
+        type: integer
+      description: Filter prints by year of creation
+    plateType:
+      in: query
+      name: plateType
+      schema:
+        type: string
+      description: Filter prints by plate type (e.g., copper, zinc)
+    paperType:
+      in: query
+      name: paperType
+      schema:
+        type: string
+      description: Filter prints by paper type
+    imageVersion:
+      in: query
+      name: imageVersion
+      schema:
+        type: string
+      description: Specific image version to retrieve (e.g., 'thumbnail', 'desktop', 'mobile'). If not provided, all available versions will be returned.
+
+  responses:
+    GalleryListResponse:
+      description: Successful response with list of galleries
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PublicGalleryList'
+          example:
+            galleries:
+              - id: 1
+                title: "Etchings of Copenhagen"
+                description: "A collection of copper plate etchings depicting iconic scenes from Copenhagen"
+                printCount: 15
+                createdAt: "2023-07-01T12:00:00Z"
+                updatedAt: "2023-07-15T14:30:00Z"
+              - id: 2
+                title: "Danish Landscapes"
+                description: "Copper prints showcasing the beauty of Danish rural landscapes"
+                printCount: 20
+                createdAt: "2023-06-15T10:00:00Z"
+                updatedAt: "2023-07-10T09:45:00Z"
+            totalCount: 5
+            currentPage: 1
+            totalPages: 1
+
+    GalleryDetailResponse:
+      description: Successful response with detailed gallery information including associated prints in order
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PublicGalleryDetail'
+          example:
+            id: 1
+            title: "Etchings of Copenhagen"
+            description: "A collection of copper plate etchings depicting iconic scenes from Copenhagen"
+            printCount: 15
+            createdAt: "2023-07-01T12:00:00Z"
+            updatedAt: "2023-07-15T14:30:00Z"
+            prints:
+              - id: 101
+                title: "The Little Mermaid"
+                thumbnailUrl: "https://cdn.copperprintgallery.com/thumbnails/little-mermaid-etching.jpg"
+                order: 1
+              - id: 102
+                title: "Nyhavn Canal"
+                thumbnailUrl: "https://cdn.copperprintgallery.com/thumbnails/nyhavn-canal-etching.jpg"
+                order: 2
+            totalCount: 15
+            currentPage: 1
+            totalPages: 1
+
+    PrintListResponse:
+      description: Successful response with list of prints
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PublicPrintList'
+          example:
+            prints:
+              - id: 101
+                title: "The Little Mermaid"
+                description: "An intricate etching of the iconic Little Mermaid statue"
+                technique: "Etching"
+                plateType: "Copper"
+                dimensions: "30cm x 40cm"
+                year: 2023
+                editionSize: 50
+                paperType: "Hahnemühle"
+                thumbnailUrl: "https://cdn.copperprintgallery.com/thumbnails/little-mermaid-etching.jpg"
+                createdAt: "2023-07-01T10:00:00Z"
+                updatedAt: "2023-07-01T10:00:00Z"
+              - id: 102
+                title: "Nyhavn Canal"
+                description: "A vibrant aquatint depicting the colorful Nyhavn canal"
+                technique: "Aquatint"
+                plateType: "Copper"
+                dimensions: "25cm x 35cm"
+                year: 2023
+                editionSize: 75
+                paperType: "Somerset Velvet"
+                thumbnailUrl: "https://cdn.copperprintgallery.com/thumbnails/nyhavn-canal-aquatint.jpg"
+                createdAt: "2023-07-02T11:00:00Z"
+                updatedAt: "2023-07-02T11:00:00Z"
+            totalCount: 50
+            currentPage: 1
+            totalPages: 5
+
+    PrintDetailResponse:
+      description: Successful response with detailed print information
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PublicPrintDetail'
+          example:
+            id: 101
+            title: "The Little Mermaid"
+            description: "An intricate etching of the iconic Little Mermaid statue in Copenhagen harbor"
+            technique: "Etching"
+            plateType: "Copper"
+            dimensions: "30cm x 40cm"
+            year: 2023
+            editionSize: 50
+            paperType: "Hahnemühle"
+            thumbnailUrl: "https://cdn.copperprintgallery.com/thumbnails/little-mermaid-etching.jpg"
+            images:
+              - version: "thumbnail"
+                url: "https://cdn.copperprintgallery.com/thumbnails/little-mermaid-etching.jpg"
+                width: 300
+                height: 200
+              - version: "desktop"
+                url: "https://cdn.copperprintgallery.com/desktop/little-mermaid-etching.jpg"
+                width: 1920
+                height: 1280
+              - version: "mobile"
+                url: "https://cdn.copperprintgallery.com/mobile/little-mermaid-etching.jpg"
+                width: 750
+                height: 500
+            createdAt: "2023-07-01T10:00:00Z"
+            updatedAt: "2023-07-01T10:00:00Z"
+
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "BAD_REQUEST"
+              message: "The request was invalid or cannot be served."
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "RESOURCE_NOT_FOUND"
+              message: "The requested resource could not be found."
+
+# No security schemes required for public API
