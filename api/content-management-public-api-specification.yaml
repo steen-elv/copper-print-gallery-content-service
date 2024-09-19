@@ -25,6 +25,8 @@ servers:
 paths:
   /galleries:
     get:
+      operationId: getGalleries
+      x-eov-operation-handler: publicController
       summary: List copper print galleries
       description: Retrieves a list of all copper print galleries
       parameters:
@@ -39,6 +41,8 @@ paths:
 
   /galleries/{galleryId}:
     get:
+      operationId: getGallery
+      x-eov-operation-handler: publicController
       summary: Get copper print gallery details
       description: Retrieves details of a specific copper print gallery, including ordered prints
       parameters:
@@ -54,6 +58,8 @@ paths:
 
   /prints:
     get:
+      operationId: getPrints
+      x-eov-operation-handler: publicController
       summary: List copper prints
       description: Retrieves a list of all copper prints
       parameters:
@@ -73,7 +79,8 @@ paths:
 
   /prints/{printId}:
     get:
-      summary: Get copper print details
+      operationId: getPrint
+      x-eov-operation-handler: publicController
       description: Retrieves details of a specific copper print
       parameters:
         - $ref: '#/components/parameters/printId'

@@ -16,17 +16,11 @@ const apiSpec = path.join(__dirname, '../api/content-management-public-api-speci
 app.use(
     OpenApiValidator.middleware({
         apiSpec,
+        operationHandlers: path.join(__dirname, 'controllers'),
         validateRequests: true,
         validateResponses: true,
     })
 );
-
-// Define your route handlers
-app.get('/api/v1/galleries', publicController.getGalleries);
-app.get('/api/v1/galleries/:galleryId', publicController.getGallery);
-app.get('/api/v1/galleries/:galleryId/prints', publicController.getGalleryPrints);
-app.get('/api/v1/prints', publicController.getPrints);
-app.get('/api/v1/prints/:printId', publicController.getPrint);
 
 // Error handling
 app.use(notFound);
