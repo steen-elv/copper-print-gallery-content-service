@@ -1,6 +1,6 @@
 // src/controllers/publicController.js
 
-const { Gallery, Print } = require('../models');
+const { Gallery, Artwork, ArtworkMetadata, Image, GalleryArtwork } = require('../models');
 
 exports.getGalleries = async (req, res, next) => {
   try {
@@ -35,32 +35,47 @@ exports.getGallery = async (req, res, next) => {
     const { language } = req.query;
 
     const gallery = await Gallery.findOne({
-      where: { id: galleryId, status: 'published' },
+      where: { id: galleryId },
       include: [{
-        model: Print,
-        attributes: ['id', 'title', 'thumbnailUrl'],
-        through: { attributes: ['order'] },
-        order: [['GalleryPrint', 'order', 'ASC']]
+        model: Artwork,
+        through: {
+          model: GalleryArtwork,
+          attributes: ['order']
+        },
+        include: [
+          {
+            model: ArtworkMetadata,
+            attributes: ['artist_name', 'year_created', 'medium', 'technique', 'dimensions']
+          },
+          {
+            model: Image,
+            where: { version: 'thumbnail' },
+            attributes: ['public_url'],
+            required: false
+          }
+        ]
       }],
-      attributes: ['id', 'title', 'description', 'printCount', 'createdAt', 'updatedAt']
+      order: [[Artwork, GalleryArtwork, 'order', 'ASC']],
+      attributes: ['id', 'title', 'description', 'created_at', 'updated_at']
     });
 
     if (!gallery) {
       return res.status(404).json({ message: 'Gallery not found' });
     }
 
+    // Transform the data to match the expected response format
     const response = {
       id: gallery.id,
       title: gallery.title,
       description: gallery.description,
-      printCount: gallery.printCount,
-      createdAt: gallery.createdAt,
-      updatedAt: gallery.updatedAt,
-      prints: gallery.Prints.map(print => ({
-        id: print.id,
-        title: print.title,
-        thumbnailUrl: print.thumbnailUrl,
-        order: print.GalleryPrint.order
+      createdAt: gallery.created_at,
+      updatedAt: gallery.updated_at,
+      printCount: gallery.Artworks.length,
+      prints: gallery.Artworks.map(artwork => ({
+        id: artwork.id,
+        title: artwork.ArtworkMetadata.artist_name,
+        thumbnailUrl: artwork.Images[0]?.public_url || null,
+        order: artwork.GalleryArtwork.order
       }))
     };
 
