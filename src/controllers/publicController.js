@@ -33,41 +33,38 @@ exports.getGallery = async (req, res, next) => {
   try {
     const { galleryId } = req.params;
     const { language } = req.query;
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const offset = (page - 1) * limit;
 
     const gallery = await Gallery.findOne({
       where: { id: galleryId, status: 'published' },
-      attributes: ['id', 'title', 'description', 'printCount', 'createdAt', 'updatedAt'],
       include: [{
         model: Print,
         attributes: ['id', 'title', 'thumbnailUrl'],
         through: { attributes: ['order'] },
-        limit: limit,
-        offset: offset,
-        order: [['order', 'ASC']]
-      }]
+        order: [['GalleryPrint', 'order', 'ASC']]
+      }],
+      attributes: ['id', 'title', 'description', 'printCount', 'createdAt', 'updatedAt']
     });
 
     if (!gallery) {
       return res.status(404).json({ message: 'Gallery not found' });
     }
 
-    const totalPrints = await gallery.countPrints();
-
-    res.json({
-      ...gallery.toJSON(),
+    const response = {
+      id: gallery.id,
+      title: gallery.title,
+      description: gallery.description,
+      printCount: gallery.printCount,
+      createdAt: gallery.createdAt,
+      updatedAt: gallery.updatedAt,
       prints: gallery.Prints.map(print => ({
         id: print.id,
         title: print.title,
         thumbnailUrl: print.thumbnailUrl,
         order: print.GalleryPrint.order
-      })),
-      totalCount: totalPrints,
-      currentPage: page,
-      totalPages: Math.ceil(totalPrints / limit)
-    });
+      }))
+    };
+
+    res.json(response);
   } catch (error) {
     next(error);
   }
