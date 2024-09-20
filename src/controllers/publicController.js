@@ -5,25 +5,40 @@ const { Op } = require('sequelize');
 
 exports.getGalleries = async (req, res, next) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const { language } = req.query;
-
+    const { page = 1, limit = 20, language = 'en' } = req.query;
     const offset = (page - 1) * limit;
 
-    const galleries = await Gallery.findAndCountAll({
-      where: { status: 'published' },
-      limit: limit,
-      offset: offset,
-      order: [['updatedAt', 'DESC']],
-      attributes: ['id', 'title', 'description', 'printCount', 'createdAt', 'updatedAt']
+    const { count, rows } = await Gallery.findAndCountAll({
+      include: [
+        {
+          model: Translation,
+          where: {
+            language_code: language,
+            field_name: { [Op.in]: ['title', 'description'] }
+          },
+          required: false
+        }
+      ],
+      limit: Number(limit),
+      offset: Number(offset),
+      order: [['updated_at', 'DESC']],
+      distinct: true
     });
 
+    const galleries = rows.map(gallery => ({
+      id: gallery.id,
+      title: getTranslatedField(gallery, 'title', 'No Title'),
+      description: getTranslatedField(gallery, 'description', 'No Description'),
+      printCount: gallery.printCount, // Assuming this is calculated elsewhere
+      createdAt: gallery.created_at,
+      updatedAt: gallery.updated_at
+    }));
+
     res.json({
-      galleries: galleries.rows,
-      totalCount: galleries.count,
-      currentPage: page,
-      totalPages: Math.ceil(galleries.count / limit)
+      galleries: galleries,
+      totalCount: count,
+      currentPage: Number(page),
+      totalPages: Math.ceil(count / limit)
     });
   } catch (error) {
     next(error);

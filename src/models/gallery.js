@@ -29,4 +29,15 @@ const Gallery = sequelize.define('Gallery', {
   timestamps: false
 });
 
+// Add association with Translation model
+Gallery.associate = (models) => {
+  Gallery.hasMany(models.Translation, {
+    foreignKey: 'entity_id',
+    constraints: false,
+    scope: {
+      entity_type: 'Gallery'
+    }
+  });
+};
+
 module.exports = Gallery;
