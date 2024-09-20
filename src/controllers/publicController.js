@@ -1,6 +1,7 @@
 // src/controllers/publicController.js
 
-const { Gallery, Artwork, ArtworkMetadata, Image, GalleryArtwork } = require('../models');
+const { Gallery, Artwork, ArtworkMetadata, Image, GalleryArtwork ,Translation} = require('../models');
+const { Op } = require('sequelize');
 
 exports.getGalleries = async (req, res, next) => {
   try {
@@ -163,18 +164,27 @@ exports.getPrints = async (req, res, next) => {
 exports.getPrint = async (req, res, next) => {
   try {
     const { printId } = req.params;
-    const { language, imageVersion } = req.query;
+    const { language = 'en', imageVersion } = req.query;  // Default language to English if not provided
 
     const artwork = await Artwork.findOne({
       where: { id: printId },
       include: [
         {
           model: ArtworkMetadata,
-          attributes: ['title', 'artist_name', 'year_created', 'technique', 'plate_material', 'dimensions', 'edition_size', 'paper_type']
+          attributes: ['title', 'description', 'artist_name', 'year_created', 'technique', 'plate_material', 'dimensions', 'edition_size', 'paper_type']
         },
         {
           model: Image,
           attributes: ['version', 'public_url', 'width', 'height']
+        },
+        {
+          model: Translation,
+          where: {
+            language_code: language,
+            entity_type: 'Artwork',
+            field_name: { [Op.in]: ['title', 'description'] }
+          },
+          required: false
         }
       ]
     });
@@ -183,11 +193,11 @@ exports.getPrint = async (req, res, next) => {
       return res.status(404).json({ message: 'Print not found' });
     }
 
-    // Prepare the response object
+    // Prepare the response object with translations
     const response = {
       id: artwork.id,
-      title: artwork.ArtworkMetadata.title,
-      description: artwork.description,
+      title: getTranslatedField(artwork, 'title', language),
+      description: getTranslatedField(artwork, 'description', language),
       technique: artwork.ArtworkMetadata.technique,
       plateType: artwork.ArtworkMetadata.plate_material,
       dimensions: artwork.ArtworkMetadata.dimensions,
@@ -211,10 +221,18 @@ exports.getPrint = async (req, res, next) => {
       }, {});
     }
 
-    // TODO: Handle language parameter for translations
-
     res.json(response);
   } catch (error) {
     next(error);
   }
 };
+
+// Helper function to get translated field
+function getTranslatedField(artwork, fieldName, language) {
+  const translation = artwork.Translations.find(t => t.field_name === fieldName);
+  if (translation) {
+    return translation.translated_content;
+  }
+  // Fallback to original content if translation not available
+  return artwork.ArtworkMetadata[fieldName];
+}
