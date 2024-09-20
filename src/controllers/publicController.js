@@ -133,7 +133,7 @@ exports.getPrints = async (req, res, next) => {
     const {
       page = 1,
       limit = 20,
-      language,
+      language = 'en',
       galleryId,
       technique,
       year,
@@ -141,7 +141,6 @@ exports.getPrints = async (req, res, next) => {
       paperType
     } = req.query;
 
-    // Convert page and limit to numbers
     const pageNum = Number(page);
     const limitNum = Number(limit);
     const offset = (pageNum - 1) * limitNum;
@@ -155,13 +154,17 @@ exports.getPrints = async (req, res, next) => {
 
     const include = [
       {
-        model: ArtworkMetadata,
-        attributes: ['title']
-      },
-      {
         model: Image,
         where: { version: 'thumbnail' },
         attributes: ['public_url'],
+        required: false
+      },
+      {
+        model: Translation,
+        where: {
+          language_code: language,
+          field_name: 'title'
+        },
         required: false
       }
     ];
@@ -181,14 +184,14 @@ exports.getPrints = async (req, res, next) => {
       limit: limitNum,
       offset: offset,
       distinct: true,
-      order: galleryId ? [[Gallery, GalleryArtwork, 'order', 'ASC']] : [['created_at', 'DESC']]
+      order: galleryId ? [[Gallery, 'GalleryArtwork', 'order', 'ASC']] : [['created_at', 'DESC']]
     });
 
     const prints = rows.map(artwork => ({
       id: artwork.id,
-      title: artwork.ArtworkMetadata.title,
+      title: artwork.Translations.length > 0 ? artwork.Translations[0].translated_content : 'No Title',
       thumbnailUrl: artwork.Images[0]?.public_url || null,
-      order: galleryId ? artwork.Galleries[0]?.GalleryArtwork.order : null
+      order: galleryId ? artwork.Galleries[0]?.GalleryArtwork.order : undefined
     }));
 
     res.json({
