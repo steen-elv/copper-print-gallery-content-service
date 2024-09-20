@@ -62,50 +62,63 @@ exports.getGalleries = async (req, res, next) => {
 exports.getGallery = async (req, res, next) => {
   try {
     const { galleryId } = req.params;
-    const { language } = req.query;
+    const { language = 'en' } = req.query;
 
     const gallery = await Gallery.findOne({
       where: { id: galleryId },
-      include: [{
-        model: Artwork,
-        through: {
-          model: GalleryArtwork,
-          attributes: ['order']
-        },
-        include: [
-          {
-            model: ArtworkMetadata,
-            attributes: ['artist_name', 'year_created', 'medium', 'technique', 'dimensions']
+      include: [
+        {
+          model: Translation,
+          where: {
+            language_code: language,
+            field_name: { [Op.in]: ['title', 'description'] }
           },
-          {
-            model: Image,
-            where: { version: 'thumbnail' },
-            attributes: ['public_url'],
-            required: false
-          }
-        ]
-      }],
-      order: [[Artwork, GalleryArtwork, 'order', 'ASC']],
-      attributes: ['id', 'title', 'description', 'created_at', 'updated_at']
+          required: false
+        },
+        {
+          model: Artwork,
+          include: [
+            {
+              model: ArtworkMetadata,
+              attributes: ['title']
+            },
+            {
+              model: Image,
+              where: { version: 'thumbnail' },
+              attributes: ['public_url'],
+              required: false
+            },
+            {
+              model: Translation,
+              where: {
+                language_code: language,
+                field_name: 'title'
+              },
+              required: false
+            }
+          ],
+          through: { attributes: ['order'] }
+        }
+      ],
+      order: [[{ model: Artwork, as: 'Artworks' }, 'GalleryArtwork', 'order', 'ASC']]
     });
 
     if (!gallery) {
       return res.status(404).json({ message: 'Gallery not found' });
     }
 
-    // Transform the data to match the expected response format
     const response = {
       id: gallery.id,
-      title: gallery.title,
-      description: gallery.description,
+      title: getTranslatedField(gallery, 'title', 'No Title'),
+      description: getTranslatedField(gallery, 'description', 'No Description'),
+      printCount: gallery.Artworks.length,
       createdAt: gallery.created_at,
       updatedAt: gallery.updated_at,
-      printCount: gallery.Artworks.length,
       prints: gallery.Artworks.map(artwork => ({
         id: artwork.id,
-        title: artwork.ArtworkMetadata.artist_name,
+        title: getTranslatedField(artwork, 'title', artwork.ArtworkMetadata.title || 'No Title'),
         thumbnailUrl: artwork.Images[0]?.public_url || null,
-        order: artwork.GalleryArtwork.order
+        order: artwork.Gallery_Artwork.order
       }))
     };
 
