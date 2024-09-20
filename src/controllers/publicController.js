@@ -2,6 +2,7 @@
 
 const { Gallery, Artwork, ArtworkMetadata, Image, GalleryArtwork ,Translation} = require('../models');
 const { Op } = require('sequelize');
+const sequelize = require('../config/database');
 
 exports.getGalleries = async (req, res, next) => {
   try {
@@ -17,28 +18,41 @@ exports.getGalleries = async (req, res, next) => {
             field_name: { [Op.in]: ['title', 'description'] }
           },
           required: false
+        },
+        {
+          model: Artwork,
+          attributes: [],
+          through: { attributes: [] }
         }
       ],
+      attributes: [
+        'id',
+        'created_at',
+        'updated_at',
+        [sequelize.fn('COUNT', sequelize.col('Artworks.id')), 'printCount']
+      ],
+      group: ['Gallery.id', 'Translations.id'],
       limit: Number(limit),
       offset: Number(offset),
       order: [['updated_at', 'DESC']],
-      distinct: true
+      distinct: true,
+      subQuery: false
     });
 
     const galleries = rows.map(gallery => ({
       id: gallery.id,
       title: getTranslatedField(gallery, 'title', 'No Title'),
       description: getTranslatedField(gallery, 'description', 'No Description'),
-      printCount: gallery.printCount, // Assuming this is calculated elsewhere
+      printCount: Number(gallery.getDataValue('printCount')),
       createdAt: gallery.created_at,
       updatedAt: gallery.updated_at
     }));
 
     res.json({
       galleries: galleries,
-      totalCount: count,
+      totalCount: count.length, // count is now an array of objects due to grouping
       currentPage: Number(page),
-      totalPages: Math.ceil(count / limit)
+      totalPages: Math.ceil(count.length / limit)
     });
   } catch (error) {
     next(error);
