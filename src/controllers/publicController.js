@@ -165,27 +165,55 @@ exports.getPrint = async (req, res, next) => {
     const { printId } = req.params;
     const { language, imageVersion } = req.query;
 
-    const print = await Print.findOne({
-      where: { id: printId, status: 'published' },
-      attributes: ['id', 'title', 'description', 'technique', 'plateType', 'dimensions', 'year', 'editionSize', 'paperType', 'images', 'createdAt', 'updatedAt']
+    const artwork = await Artwork.findOne({
+      where: { id: printId },
+      include: [
+        {
+          model: ArtworkMetadata,
+          attributes: ['title', 'artist_name', 'year_created', 'technique', 'plate_material', 'dimensions', 'edition_size', 'paper_type']
+        },
+        {
+          model: Image,
+          attributes: ['version', 'public_url', 'width', 'height']
+        }
+      ]
     });
 
-    if (!print) {
+    if (!artwork) {
       return res.status(404).json({ message: 'Print not found' });
     }
 
-    let responseData = print.toJSON();
+    // Prepare the response object
+    const response = {
+      id: artwork.id,
+      title: artwork.ArtworkMetadata.title,
+      description: artwork.description,
+      technique: artwork.ArtworkMetadata.technique,
+      plateType: artwork.ArtworkMetadata.plate_material,
+      dimensions: artwork.ArtworkMetadata.dimensions,
+      year: artwork.ArtworkMetadata.year_created,
+      editionSize: artwork.ArtworkMetadata.edition_size,
+      paperType: artwork.ArtworkMetadata.paper_type,
+      createdAt: artwork.created_at,
+      updatedAt: artwork.updated_at
+    };
 
-    // Handle imageVersion
-    if (imageVersion && responseData.images) {
-      if (responseData.images[imageVersion]) {
-        responseData.images = { [imageVersion]: responseData.images[imageVersion] };
-      } else {
-        delete responseData.images;
-      }
+    // Handle image versions
+    if (imageVersion) {
+      const requestedImage = artwork.Images.find(img => img.version === imageVersion);
+      response.images = requestedImage ?
+          { [imageVersion]: { url: requestedImage.public_url, width: requestedImage.width, height: requestedImage.height } } :
+          {};
+    } else {
+      response.images = artwork.Images.reduce((acc, img) => {
+        acc[img.version] = { url: img.public_url, width: img.width, height: img.height };
+        return acc;
+      }, {});
     }
 
-    res.json(responseData);
+    // TODO: Handle language parameter for translations
+
+    res.json(response);
   } catch (error) {
     next(error);
   }
