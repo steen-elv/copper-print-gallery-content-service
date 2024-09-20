@@ -171,7 +171,7 @@ exports.getPrint = async (req, res, next) => {
       include: [
         {
           model: ArtworkMetadata,
-          attributes: ['title', 'description', 'artist_name', 'year_created', 'technique', 'plate_material', 'dimensions', 'edition_size', 'paper_type']
+          attributes: ['artist_name', 'year_created', 'technique', 'plate_material', 'dimensions', 'edition_info', 'paper_type']
         },
         {
           model: Image,
@@ -180,8 +180,8 @@ exports.getPrint = async (req, res, next) => {
         {
           model: Translation,
           where: {
-            language_code: language,
             entity_type: 'Artwork',
+            language_code: language,
             field_name: { [Op.in]: ['title', 'description'] }
           },
           required: false
@@ -196,13 +196,13 @@ exports.getPrint = async (req, res, next) => {
     // Prepare the response object with translations
     const response = {
       id: artwork.id,
-      title: getTranslatedField(artwork, 'title', language),
-      description: getTranslatedField(artwork, 'description', language),
+      title: getTranslatedField(artwork, 'title', 'No Title'),
+      description: getTranslatedField(artwork, 'description', 'No Description'),
       technique: artwork.ArtworkMetadata.technique,
       plateType: artwork.ArtworkMetadata.plate_material,
       dimensions: artwork.ArtworkMetadata.dimensions,
       year: artwork.ArtworkMetadata.year_created,
-      editionSize: artwork.ArtworkMetadata.edition_size,
+      editionSize: artwork.ArtworkMetadata.edition_info,
       paperType: artwork.ArtworkMetadata.paper_type,
       createdAt: artwork.created_at,
       updatedAt: artwork.updated_at
@@ -228,11 +228,7 @@ exports.getPrint = async (req, res, next) => {
 };
 
 // Helper function to get translated field
-function getTranslatedField(artwork, fieldName, language) {
+function getTranslatedField(artwork, fieldName, fallback) {
   const translation = artwork.Translations.find(t => t.field_name === fieldName);
-  if (translation) {
-    return translation.translated_content;
-  }
-  // Fallback to original content if translation not available
-  return artwork.ArtworkMetadata[fieldName];
+  return translation ? translation.translated_content : fallback;
 }
