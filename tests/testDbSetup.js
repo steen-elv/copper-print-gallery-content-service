@@ -1,21 +1,38 @@
 // tests/testDbSetup.js
 
 const { Sequelize } = require('sequelize');
-const {
+const config = require('../src/config/database');  // Assume this exists and contains our database configurations
+
+// Use the test configuration, but override with SQLite settings
+const testConfig = {
+    ...config.unittest,
+    dialect: 'sqlite',
+    storage: ':memory:',
+    logging: false
+};
+
+const sequelize = new Sequelize(testConfig);
+
+// Import your models
+const { Gallery, Artwork, Translation, Image, ArtworkMetadata } = require('../src/models');
+
+// Initialize models
+const models = {
     Gallery,
     Artwork,
     Translation,
     Image,
-    ArtworkMetadata,
-    // Import any other models you have
-} = require('../src/models');
+    ArtworkMetadata
+};
 
-const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+Object.values(models).forEach(model => {
+    model.init(model.getAttributes(), { sequelize });
+});
 
-// Initialize models
-Object.values(sequelize.models).forEach(model => {
+// Set up associations
+Object.values(models).forEach(model => {
     if (typeof model.associate === 'function') {
-        model.associate(sequelize.models);
+        model.associate(models);
     }
 });
 
@@ -26,11 +43,6 @@ const syncDatabase = async () => {
 
 module.exports = {
     sequelize,
-    Gallery,
-    Artwork,
-    Translation,
-    Image,
-    ArtworkMetadata,
-    // Export any other models you have
+    ...models,
     syncDatabase,
 };

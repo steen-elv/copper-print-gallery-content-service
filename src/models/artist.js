@@ -1,7 +1,7 @@
 // src/models/artist.js
 
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const {sequelize} = require('../config/database');
 
 const Artist = sequelize.define('Artist', {
   id: {

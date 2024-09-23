@@ -1,7 +1,7 @@
 // src/models/exifData.js
 
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const {sequelize} = require('../config/database');
 
 const ExifData = sequelize.define('ExifData', {
     id: {

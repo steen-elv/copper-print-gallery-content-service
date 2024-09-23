@@ -1,7 +1,7 @@
 // src/models/artworkTag.js
 
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const {sequelize} = require('../config/database');
 
 const ArtworkTag = sequelize.define('ArtworkTag', {
     artwork_id: {

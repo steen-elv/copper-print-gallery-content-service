@@ -1,7 +1,7 @@
 // src/models/artworkMetadata.js
 
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const {sequelize} = require('../config/database');
 
 const ArtworkMetadata = sequelize.define('ArtworkMetadata', {
     id: {

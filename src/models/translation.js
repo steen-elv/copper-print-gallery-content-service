@@ -1,7 +1,7 @@
 // src/models/translation.js
 
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const {sequelize} = require('../config/database');
 
 const Translation = sequelize.define('Translation', {
     id: {

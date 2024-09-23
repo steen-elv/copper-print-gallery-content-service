@@ -1,7 +1,7 @@
 // src/models/galleryArtwork.js
 
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const {sequelize} = require('../config/database');
 
 const GalleryArtwork = sequelize.define('GalleryArtwork', {
     gallery_id: {
