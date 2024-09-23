@@ -1,19 +1,10 @@
 // __mocks__/models.js
 
-const mockArtwork = {
-    findAndCountAll: jest.fn()
-};
-
-const mockGallery = {
-    findOne: jest.fn()
-};
-
-const mockTranslation = {};
-const mockImage = {};
+const { TestGallery, TestArtwork, TestTranslation, TestImage } = require('../tests/testDbSetup');
 
 module.exports = {
-    Artwork: mockArtwork,
-    Gallery: mockGallery,
-    Translation: mockTranslation,
-    Image: mockImage
+    Gallery: TestGallery,
+    Artwork: TestArtwork,
+    Translation: TestTranslation,
+    Image: TestImage,
 };
