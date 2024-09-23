@@ -55,6 +55,7 @@ exports.getGalleries = async (req, res, next) => {
       totalPages: Math.ceil(count.length / limit)
     });
   } catch (error) {
+    console.error('Error in getGalleries:', error);
     next(error);
   }
 };
@@ -124,6 +125,7 @@ exports.getGallery = async (req, res, next) => {
 
     res.json(response);
   } catch (error) {
+    console.error('Error in getGallery:', error);
     next(error);
   }
 };
@@ -152,56 +154,47 @@ exports.getPrints = async (req, res, next) => {
     if (plateType) whereClause['$ArtworkMetadata.plate_material$'] = plateType;
     if (paperType) whereClause['$ArtworkMetadata.paper_type$'] = paperType;
 
-    const include = [
-      {
-        model: Image,
-        where: { version: 'thumbnail' },
-        attributes: ['public_url'],
-        required: false
-      },
-      {
-        model: Translation,
-        where: {
-          language_code: language,
-          field_name: 'title'
-        },
-        required: false
-      }
-    ];
-
-    if (galleryId) {
-      include.push({
-        model: Gallery,
-        where: { id: galleryId },
-        attributes: [],
-        through: { attributes: ['order'] }
-      });
-    }
-
     const { count, rows } = await Artwork.findAndCountAll({
       where: whereClause,
-      include: include,
+      include: [
+        {
+          model: ArtworkMetadata,
+          required: false
+        },
+        {
+          model: Translation,
+          where: {
+            language_code: language,
+            field_name: 'title'
+          },
+          required: false
+        },
+        {
+          model: Image,
+          where: { version: 'thumbnail' },
+          required: false
+        }
+      ],
       limit: limitNum,
       offset: offset,
       distinct: true,
-      order: galleryId ? [[Gallery, 'GalleryArtwork', 'order', 'ASC']] : [['created_at', 'DESC']]
+      order: [['created_at', 'DESC']]
     });
 
     const prints = rows.map(artwork => ({
       id: artwork.id,
-      title: artwork.Translations.length > 0 ? artwork.Translations[0].translated_content : 'No Title',
-      thumbnailUrl: artwork.Images[0]?.public_url || null,
-      order: galleryId ? artwork.Galleries[0]?.GalleryArtwork.order : undefined
+      title: artwork.Translations[0]?.translated_content || 'No Title',
+      thumbnailUrl: artwork.Images[0]?.public_url || null
     }));
 
     res.json({
-      prints: prints,
+      prints,
       totalCount: count,
       currentPage: pageNum,
       totalPages: Math.ceil(count / limitNum)
     });
-
   } catch (error) {
+    console.error('Error in getPrints:', error);
     next(error);
   }
 };
@@ -268,6 +261,7 @@ exports.getPrint = async (req, res, next) => {
 
     res.json(response);
   } catch (error) {
+    console.error('Error in getPrint:', error);
     next(error);
   }
 };
