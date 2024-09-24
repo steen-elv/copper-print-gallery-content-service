@@ -3,23 +3,6 @@
 const { Model, DataTypes } = require('sequelize');
 
 class Artwork extends Model {
-    static init(sequelize) {
-        super.init({
-            // Define attributes here
-            id: {
-                type: DataTypes.INTEGER,
-                primaryKey: true,
-                autoIncrement: true
-            },
-            // ... other attributes
-        }, {
-            sequelize,
-            modelName: 'Artwork',
-            tableName: 'ARTWORK',
-            // ... other options
-        });
-    }
-
     static associate(models) {
         // Define associations here
         this.belongsToMany(models.Gallery, { through: 'GalleryArtwork' });
@@ -35,4 +18,33 @@ class Artwork extends Model {
     }
 }
 
-module.exports = Artwork;
+const initArtwork = (sequelize) => {
+    Artwork.init({
+        id: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+            autoIncrement: true
+        },
+        // Add other attributes here
+        created_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW
+        },
+        updated_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW
+        }
+    }, {
+        sequelize,
+        modelName: 'Artwork',
+        tableName: 'ARTWORK',
+        timestamps: true,
+        underscored: true
+    });
+
+    return Artwork;
+};
+
+module.exports = initArtwork;
