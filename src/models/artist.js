@@ -6,6 +6,15 @@ class Artist extends Model {
   static associate(models) {
     this.hasMany(models.Gallery, { foreignKey: 'artist_id' });
     this.hasMany(models.Artwork, { foreignKey: 'artist_id' });
+    this.hasMany(models.ArtistPreference, { foreignKey: 'artist_id' });
+    // Add Translation association
+    this.hasMany(models.Translation, {
+      foreignKey: 'entity_id',
+      constraints: false,
+      scope: {
+        entity_type: 'Artist'
+      }
+    });
   }
 }
 

@@ -4,8 +4,11 @@ const { Model, DataTypes } = require('sequelize');
 
 class Artwork extends Model {
     static associate(models) {
-        this.belongsToMany(models.Gallery, { through: 'GalleryArtwork' });
         this.belongsTo(models.Artist, { foreignKey: 'artist_id' });
+        this.belongsToMany(models.Gallery, { through: models.GalleryArtwork });
+        this.hasOne(models.ArtworkMetadata, { foreignKey: 'artwork_id' });
+        this.hasMany(models.Image, { foreignKey: 'artwork_id' });
+        this.belongsToMany(models.Tag, { through: models.ArtworkTag });
         this.hasMany(models.Translation, {
             foreignKey: 'entity_id',
             constraints: false,
@@ -13,9 +16,6 @@ class Artwork extends Model {
                 entity_type: 'Artwork'
             }
         });
-        this.hasMany(models.Image, { foreignKey: 'artwork_id' });
-        this.hasOne(models.ArtworkMetadata, { foreignKey: 'artwork_id' });
-        this.belongsToMany(models.Tag, { through: 'ARTWORK_TAG' });
     }
 }
 

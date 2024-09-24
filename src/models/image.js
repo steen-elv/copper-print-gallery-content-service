@@ -5,6 +5,7 @@ const { Model, DataTypes } = require('sequelize');
 class Image extends Model {
     static associate(models) {
         this.belongsTo(models.Artwork, { foreignKey: 'artwork_id' });
+        this.hasMany(models.ExifData, { foreignKey: 'image_id' });
     }
 }
 
