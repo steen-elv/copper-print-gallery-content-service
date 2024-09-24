@@ -11,6 +11,12 @@ const {
     syncDatabase
 } = require('../testDbSetup');
 
+// Mock the models in the controller
+jest.mock('../../src/models', () => {
+    const { Artwork, Translation, Image, ArtworkMetadata } = require('../testDbSetup');
+    return { Artwork, Translation, Image, ArtworkMetadata };
+});
+
 const publicController = require('../../src/controllers/publicController');
 
 const app = express();

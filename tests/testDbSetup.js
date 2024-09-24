@@ -1,40 +1,29 @@
 // tests/testDbSetup.js
 
-const { Sequelize } = require('sequelize');
-const config = require('../src/config/database');  // Assume this exists and contains our database configurations
+const { Sequelize, DataTypes } = require('sequelize');
+const GalleryModel = require('../src/models/gallery');
+const ArtworkModel = require('../src/models/artwork');
+const TranslationModel = require('../src/models/translation');
+const ImageModel = require('../src/models/image');
+const ArtworkMetadataModel = require('../src/models/artworkMetadata');
 
-// Use the test configuration, but override with SQLite settings
-const testConfig = {
-    ...config.unittest,
-    dialect: 'sqlite',
-    storage: ':memory:',
+const sequelize = new Sequelize('sqlite::memory:', {
     logging: false
-};
-
-const sequelize = new Sequelize(testConfig);
-
-// Import your models
-const { Gallery, Artwork, Translation, Image, ArtworkMetadata } = require('../src/models');
+});
 
 // Initialize models
-const models = {
-    Gallery,
-    Artwork,
-    Translation,
-    Image,
-    ArtworkMetadata
-};
-
-Object.values(models).forEach(model => {
-    model.init(model.getAttributes(), { sequelize });
-});
+const Gallery = GalleryModel(sequelize, DataTypes);
+const Artwork = ArtworkModel(sequelize, DataTypes);
+const Translation = TranslationModel(sequelize, DataTypes);
+const Image = ImageModel(sequelize, DataTypes);
+const ArtworkMetadata = ArtworkMetadataModel(sequelize, DataTypes);
 
 // Set up associations
-Object.values(models).forEach(model => {
-    if (typeof model.associate === 'function') {
-        model.associate(models);
-    }
-});
+if (Gallery.associate) Gallery.associate({ Artwork });
+if (Artwork.associate) Artwork.associate({ Gallery, Translation, Image, ArtworkMetadata });
+if (Translation.associate) Translation.associate({ Artwork });
+if (Image.associate) Image.associate({ Artwork });
+if (ArtworkMetadata.associate) ArtworkMetadata.associate({ Artwork });
 
 // Function to sync all models to the database
 const syncDatabase = async () => {
@@ -43,6 +32,10 @@ const syncDatabase = async () => {
 
 module.exports = {
     sequelize,
-    ...models,
+    Gallery,
+    Artwork,
+    Translation,
+    Image,
+    ArtworkMetadata,
     syncDatabase,
 };
