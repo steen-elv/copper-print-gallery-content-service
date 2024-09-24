@@ -2,15 +2,9 @@
 
 const fs = require('fs');
 const path = require('path');
-const Sequelize = require('sequelize');
-const config = require('../config/database');
+const sequelize = require('../config/database');
 
 const basename = path.basename(__filename);
-const env = process.env.NODE_ENV || 'development';
-const dbConfig = config[env];
-
-const sequelize = new Sequelize(dbConfig.database, dbConfig.username, dbConfig.password, dbConfig);
-
 const db = {};
 
 fs
@@ -31,6 +25,6 @@ Object.keys(db).forEach(modelName => {
 });
 
 db.sequelize = sequelize;
-db.Sequelize = Sequelize;
+db.Sequelize = sequelize.Sequelize;
 
 module.exports = db;

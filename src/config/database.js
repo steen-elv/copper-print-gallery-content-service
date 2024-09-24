@@ -1,49 +1,38 @@
 // src/config/database.js
 
-const {Sequelize} = require('sequelize');
-const dotenv = require('dotenv');
+const { Sequelize } = require('sequelize');
 
-dotenv.config();
-const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    dialect: 'postgres',
-    logging: false, // set to console.log to see the raw SQL queries
-    pool: {
-        max: 5,
-        min: 0,
-        acquire: 30000,
-        idle: 10000
+// Read environment variables
+const {
+    NODE_ENV = 'development',
+    DB_HOST,
+    DB_PORT,
+    DB_NAME,
+    DB_USER,
+    DB_PASSWORD,
+    DB_DIALECT = 'postgres'
+} = process.env;
+
+// Create Sequelize instance
+const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
+    host: DB_HOST,
+    port: DB_PORT,
+    dialect: DB_DIALECT,
+    logging: NODE_ENV === 'development' ? console.log : false,
+    define: {
+        underscored: true,
+        timestamps: true
     }
 });
 
-const test = {
-    sequelize: new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, {
-        host: process.env.DB_HOST,
-        port: process.env.DB_PORT,
-        dialect: 'postgres',
-        logging: false, // set to console.log to see the raw SQL queries
-        pool: {
-            max: 5,
-            min: 0,
-            acquire: 30000,
-            idle: 10000
-        }
+// Test the connection
+sequelize
+    .authenticate()
+    .then(() => {
+        console.log('Database connection has been established successfully.');
     })
+    .catch(err => {
+        console.error('Unable to connect to the database:', err);
+    });
 
-};
-
-const unittest = {
-    sequelize: new Sequelize({
-        dialect: 'sqlite',
-        logging: false // set to console.log to see the raw SQL queries
-    })
-
-};
-
-module.exports = {
-    test,
-    unittest,
-    sequelize
-
-}
+module.exports = sequelize;
