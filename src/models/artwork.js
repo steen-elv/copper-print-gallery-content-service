@@ -5,6 +5,7 @@ const { Model, DataTypes } = require('sequelize');
 class Artwork extends Model {
     static associate(models) {
         this.belongsToMany(models.Gallery, { through: 'GalleryArtwork' });
+        this.belongsTo(models.Artist, { foreignKey: 'artist_id' });
         this.hasMany(models.Translation, {
             foreignKey: 'entity_id',
             constraints: false,
@@ -14,6 +15,7 @@ class Artwork extends Model {
         });
         this.hasMany(models.Image, { foreignKey: 'artwork_id' });
         this.hasOne(models.ArtworkMetadata, { foreignKey: 'artwork_id' });
+        this.belongsToMany(models.Tag, { through: 'ARTWORK_TAG' });
     }
 }
 
@@ -24,7 +26,10 @@ module.exports = (sequelize) => {
             primaryKey: true,
             autoIncrement: true
         },
-        // Add other attributes here
+        artist_id: {
+            type: DataTypes.INTEGER,
+            allowNull: false
+        },
         created_at: {
             type: DataTypes.DATE,
             allowNull: false,
@@ -34,6 +39,9 @@ module.exports = (sequelize) => {
             type: DataTypes.DATE,
             allowNull: false,
             defaultValue: DataTypes.NOW
+        },
+        last_indexed: {
+            type: DataTypes.DATE
         }
     }, {
         sequelize,

@@ -1,20 +1,37 @@
 // src/models/artworkTag.js
 
-const { DataTypes } = require('sequelize');
-const {sequelize} = require('../config/database');
+const { Model, DataTypes } = require('sequelize');
 
-const ArtworkTag = sequelize.define('ArtworkTag', {
-    artwork_id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true
-    },
-    tag_id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true
+class ArtworkTag extends Model {
+    static associate(models) {
+        // This is a junction table, so it doesn't need its own associations
     }
-}, {
-    tableName: 'ARTWORK_TAG',
-    timestamps: false
-});
+}
 
-module.exports = ArtworkTag;
+module.exports = (sequelize) => {
+    ArtworkTag.init({
+        artwork_id: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+            references: {
+                model: 'ARTWORK',
+                key: 'id'
+            }
+        },
+        tag_id: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+            references: {
+                model: 'TAG',
+                key: 'id'
+            }
+        }
+    }, {
+        sequelize,
+        modelName: 'ArtworkTag',
+        tableName: 'ARTWORK_TAG',
+        timestamps: false
+    });
+
+    return ArtworkTag;
+};

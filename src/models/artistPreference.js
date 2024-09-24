@@ -1,28 +1,41 @@
 // src/models/artistPreference.js
 
-const { DataTypes } = require('sequelize');
-const {sequelize} = require('../config/database');
+const { Model, DataTypes } = require('sequelize');
 
-const ArtistPreference = sequelize.define('ArtistPreference', {
-    id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true
-    },
-    artist_id: {
-        type: DataTypes.INTEGER,
-        allowNull: false
-    },
-    preference_key: {
-        type: DataTypes.STRING(100),
-        allowNull: false
-    },
-    preference_value: {
-        type: DataTypes.TEXT
+class ArtistPreference extends Model {
+    static associate(models) {
+        this.belongsTo(models.Artist, { foreignKey: 'artist_id' });
     }
-}, {
-    tableName: 'ARTIST_PREFERENCE',
-    timestamps: false
-});
+}
 
-module.exports = ArtistPreference;
+module.exports = (sequelize) => {
+    ArtistPreference.init({
+        id: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+            autoIncrement: true
+        },
+        artist_id: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            references: {
+                model: 'ARTIST',
+                key: 'id'
+            }
+        },
+        preference_key: {
+            type: DataTypes.STRING(100),
+            allowNull: false
+        },
+        preference_value: {
+            type: DataTypes.TEXT
+        }
+    }, {
+        sequelize,
+        modelName: 'ArtistPreference',
+        tableName: 'ARTIST_PREFERENCE',
+        timestamps: false
+    });
+
+    return ArtistPreference;
+};
