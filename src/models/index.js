@@ -13,9 +13,10 @@ fs
         return (file.indexOf('.') !== 0) && (file !== basename) && (file.slice(-3) === '.js');
     })
     .forEach(file => {
-        const initModel = require(path.join(__dirname, file));
-        const model = initModel(sequelize);
+        const { init, Model } = require(path.join(__dirname, file));
+        const model = init(sequelize);
         db[model.name] = model;
+        db[Model.name] = Model; // This line adds the Model class to db as well
     });
 
 Object.keys(db).forEach(modelName => {

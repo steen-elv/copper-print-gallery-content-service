@@ -4,7 +4,7 @@ const { Model, DataTypes } = require('sequelize');
 
 class Artwork extends Model {
     static associate(models) {
-        // Define associations here
+        // Associations remain the same
         this.belongsToMany(models.Gallery, { through: 'GalleryArtwork' });
         this.hasMany(models.Translation, {
             foreignKey: 'entity_id',
@@ -18,14 +18,15 @@ class Artwork extends Model {
     }
 }
 
-const initArtwork = (sequelize) => {
+const init = (sequelize) => {
     Artwork.init({
+        // Attributes remain the same
         id: {
             type: DataTypes.INTEGER,
             primaryKey: true,
             autoIncrement: true
         },
-        // Add other attributes here
+        // Other attributes...
         created_at: {
             type: DataTypes.DATE,
             allowNull: false,
@@ -47,4 +48,4 @@ const initArtwork = (sequelize) => {
     return Artwork;
 };
 
-module.exports = initArtwork;
+module.exports = { init, Model: Artwork };
