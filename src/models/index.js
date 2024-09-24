@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const Sequelize = require('sequelize');
 const sequelize = require('../config/database');
 
 const basename = path.basename(__filename);
@@ -13,10 +14,9 @@ fs
         return (file.indexOf('.') !== 0) && (file !== basename) && (file.slice(-3) === '.js');
     })
     .forEach(file => {
-        const { init, Model } = require(path.join(__dirname, file));
-        const model = init(sequelize);
+        const modelInit = require(path.join(__dirname, file));
+        const model = modelInit(sequelize);
         db[model.name] = model;
-        db[Model.name] = Model; // This line adds the Model class to db as well
     });
 
 Object.keys(db).forEach(modelName => {
@@ -26,6 +26,6 @@ Object.keys(db).forEach(modelName => {
 });
 
 db.sequelize = sequelize;
-db.Sequelize = sequelize.Sequelize;
+db.Sequelize = Sequelize;
 
 module.exports = db;
