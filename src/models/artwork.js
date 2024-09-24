@@ -1,28 +1,38 @@
 // src/models/artwork.js
 
-const { DataTypes } = require('sequelize');
-const {sequelize} = require('../config/database');
+const { Model, DataTypes } = require('sequelize');
 
-const Artwork = sequelize.define('Artwork', {
-    id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true
-    },
-    created_at: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW
-    },
-    updated_at: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW
-    },
-    last_indexed: {
-        type: DataTypes.DATE
+class Artwork extends Model {
+    static init(sequelize) {
+        super.init({
+            // Define attributes here
+            id: {
+                type: DataTypes.INTEGER,
+                primaryKey: true,
+                autoIncrement: true
+            },
+            // ... other attributes
+        }, {
+            sequelize,
+            modelName: 'Artwork',
+            tableName: 'ARTWORK',
+            // ... other options
+        });
     }
-}, {
-    tableName: 'ARTWORK',
-    timestamps: false
-});
+
+    static associate(models) {
+        // Define associations here
+        this.belongsToMany(models.Gallery, { through: 'GalleryArtwork' });
+        this.hasMany(models.Translation, {
+            foreignKey: 'entity_id',
+            constraints: false,
+            scope: {
+                entity_type: 'Artwork'
+            }
+        });
+        this.hasMany(models.Image, { foreignKey: 'artwork_id' });
+        this.hasOne(models.ArtworkMetadata, { foreignKey: 'artwork_id' });
+    }
+}
 
 module.exports = Artwork;

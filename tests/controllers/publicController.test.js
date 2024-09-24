@@ -11,11 +11,7 @@ const {
     syncDatabase
 } = require('../testDbSetup');
 
-// Mock the models in the controller
-jest.mock('../../src/models', () => {
-    const { Artwork, Translation, Image, ArtworkMetadata } = require('../testDbSetup');
-    return { Artwork, Translation, Image, ArtworkMetadata };
-});
+// No need to mock models, as we're using the actual models with a test database
 
 const publicController = require('../../src/controllers/publicController');
 
@@ -86,14 +82,9 @@ describe('getPrints', () => {
             status: 'active'
         });
 
-        console.log('Test data created');
-
         const response = await request(app)
             .get('/api/v1/prints')
             .query({ page: 1, limit: 10 });
-
-        console.log('Response status:', response.status);
-        console.log('Response body:', response.body);
 
         expect(response.status).toBe(200);
         expect(response.body).toEqual({
