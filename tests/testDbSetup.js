@@ -1,11 +1,13 @@
 // tests/testDbSetup.js
 
-const { Sequelize } = require('sequelize');
+const { Sequelize, DataTypes } = require('sequelize');
 const fs = require('fs');
 const path = require('path');
 
-// Create a new Sequelize instance for testing
-const sequelize = new Sequelize('sqlite::memory:', {
+// Create a new Sequelize instance for testing with the correct SQLite URL format
+const sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: ':memory:',
     logging: false // disable logging; default: console.log
 });
 
