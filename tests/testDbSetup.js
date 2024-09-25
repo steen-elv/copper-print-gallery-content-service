@@ -1,33 +1,30 @@
 // tests/testDbSetup.js
 
 const { Sequelize } = require('sequelize');
-const config = require('../src/config/config.js');
+const fs = require('fs');
+const path = require('path');
 
-// Override the configuration to use SQLite in-memory database
-const testConfig = {
-    ...config.test,
-    dialect: 'sqlite',
-    storage: ':memory:',
-    logging: false
-};
-
-// Create a new Sequelize instance with the test configuration
-const sequelize = new Sequelize(testConfig);
-
-// Import the models
-const models = require('../src/models');
-
-// Replace the Sequelize instance in the models
-Object.values(models).forEach(model => {
-    if (model.init) {
-        model.init(sequelize);
-    }
+// Create a new Sequelize instance for testing
+const sequelize = new Sequelize('sqlite::memory:', {
+    logging: false // disable logging; default: console.log
 });
 
-// Set up associations
-Object.values(models).forEach(model => {
-    if (model.associate) {
-        model.associate(models);
+const modelsDir = path.join(__dirname, '../src/models');
+const db = {};
+
+// Read model files and initialize them
+fs.readdirSync(modelsDir)
+    .filter(file => file.indexOf('.') !== 0 && file.slice(-3) === '.js')
+    .forEach(file => {
+        const model = require(path.join(modelsDir, file));
+        const modelInstance = model(sequelize);
+        db[modelInstance.name] = modelInstance;
+    });
+
+// Run .associate for each model if it exists
+Object.keys(db).forEach(modelName => {
+    if (db[modelName].associate) {
+        db[modelName].associate(db);
     }
 });
 
@@ -38,6 +35,6 @@ const syncDatabase = async () => {
 
 module.exports = {
     sequelize,
-    ...models,
-    syncDatabase,
+    ...db,
+    syncDatabase
 };
