@@ -2,27 +2,14 @@
 
 const request = require('supertest');
 const express = require('express');
-const {
-    sequelize,
-    Artwork,
-    Translation,
-    Image,
-    ArtworkMetadata,
-    syncDatabase
-} = require('../testDbSetup');
+const { sequelize, Artwork, Translation, Image, ArtworkMetadata, syncDatabase } = require('../testDbSetup');
 
-// No need to mock models, as we're using the actual models with a test database
-
+// Import the controller directly, without any mocking
 const publicController = require('../../src/controllers/publicController');
 
 const app = express();
 app.use(express.json());
 app.get('/api/v1/prints', publicController.getPrints);
-
-app.use((err, req, res, next) => {
-    console.error('Error in middleware:', err);
-    res.status(500).json({ error: err.message });
-});
 
 describe('getPrints', () => {
     beforeAll(async () => {
