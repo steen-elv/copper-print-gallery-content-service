@@ -4,7 +4,12 @@ const request = require('supertest');
 const express = require('express');
 const { sequelize, Artwork, Translation, Image, ArtworkMetadata, syncDatabase } = require('../testDbSetup');
 
-// Import the controller directly, without any mocking
+// Mock the database configuration
+jest.mock('../../src/config/database', () => ({
+    sequelize: sequelize
+}));
+
+// Import the controller after mocking the database configuration
 const publicController = require('../../src/controllers/publicController');
 
 const app = express();
