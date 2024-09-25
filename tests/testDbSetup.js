@@ -14,7 +14,7 @@ const db = {};
 
 // Read model files and initialize them
 fs.readdirSync(modelsDir)
-    .filter(file => file.indexOf('.') !== 0 && file.slice(-3) === '.js')
+    .filter(file => file.indexOf('.') !== 0 && file.slice(-3) === '.js' && file !== 'index.js')
     .forEach(file => {
         const model = require(path.join(modelsDir, file));
         const modelInstance = model(sequelize);
