@@ -7,10 +7,10 @@ const express = require('express');
 jest.mock('../../src/config/database');
 
 // Import the mocked sequelize instance
-const { sequelize } = require('../../src/config/database');
+const  sequelize  = require('../../src/config/database');
 
 // Import models after mocking the database
-const { Artwork, Translation, Image, ArtworkMetadata } = require('../../src/models');
+const { Artwork, Translation, Image, ArtworkMetadata } = require('../../src/models/index');
 
 // Import the controller
 const publicController = require('../../src/controllers/publicController');

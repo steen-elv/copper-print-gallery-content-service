@@ -11,7 +11,7 @@ const db = {};
 fs
     .readdirSync(__dirname)
     .filter(file => {
-        return (file.indexOf('.') !== 0) && (file !== basename) && (file.slice(-3) === '.js');
+        return (file.indexOf('.') !== 0) && (file !== basename) && (file.slice(-3) === '.js' && file !== 'index.js');
     })
     .forEach(file => {
         const modelInit = require(path.join(__dirname, file));
@@ -25,6 +25,7 @@ Object.keys(db).forEach(modelName => {
     }
 });
 
+console.log(db);
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
