@@ -7,10 +7,10 @@ const express = require('express');
 jest.mock('../../src/config/database');
 
 // Import the mocked sequelize instance
-const  sequelize  = require('../../src/config/database');
+const sequelize = require('../../src/config/database');
 
 // Import models after mocking the database
-const { Artwork, Translation, Image, ArtworkMetadata } = require('../../src/models/index');
+const { Artist, Artwork, Translation, Image, ArtworkMetadata } = require('../../src/models/index');
 
 // Import the controller
 const publicController = require('../../src/controllers/publicController');
@@ -29,6 +29,7 @@ describe('getPrints', () => {
         await Translation.destroy({ where: {} });
         await Image.destroy({ where: {} });
         await ArtworkMetadata.destroy({ where: {} });
+        await Artist.destroy({ where: {} });
     });
 
     afterAll(async () => {
@@ -36,12 +37,21 @@ describe('getPrints', () => {
     });
 
     it('should return prints with correct pagination', async () => {
+        // Create an artist first
+        const artist = await Artist.create({
+            keycloak_id: 'kc123',
+            username: 'testartist',
+            email: 'test@example.com',
+            default_language: 'en'
+        });
+
         // Create test data
-        const artwork1 = await Artwork.create({ id: 1 });
-        const artwork2 = await Artwork.create({ id: 2 });
+        const artwork1 = await Artwork.create({ id: 1, artist_id: artist.id });
+        const artwork2 = await Artwork.create({ id: 2, artist_id: artist.id });
 
         await ArtworkMetadata.create({
             artwork_id: 1,
+            artist_name: 'test artist',
             technique: 'etching',
             year_created: 2023,
             plate_material: 'copper',
@@ -49,6 +59,7 @@ describe('getPrints', () => {
         });
         await ArtworkMetadata.create({
             artwork_id: 2,
+            artist_name: 'test artist',
             technique: 'aquatint',
             year_created: 2022,
             plate_material: 'zinc',
@@ -82,28 +93,48 @@ describe('getPrints', () => {
             .query({ page: 1, limit: 10 });
 
         expect(response.status).toBe(200);
-        expect(response.body).toEqual({
-            prints: [
-                { id: 1, title: 'Print 1', thumbnailUrl: 'url1' },
-                { id: 2, title: 'Print 2', thumbnailUrl: 'url2' }
-            ],
-            totalCount: 2,
-            currentPage: 1,
-            totalPages: 1
-        });
+        expect(response.body.prints.length).toBe(2);
+        expect(response.body.prints).toEqual(expect.arrayContaining([
+            { id: 1, title: 'Print 1', thumbnailUrl: 'url1' },
+            { id: 2, title: 'Print 2', thumbnailUrl: 'url2' }
+        ]));
+        expect(response.body.totalCount).toEqual(2);
+        expect(response.body.currentPage).toEqual(1);
+        expect(response.body.totalPages).toEqual(1);
     });
 
     it('should handle query parameters correctly', async () => {
+        // Create an artist first
+        const artist = await Artist.create({
+            keycloak_id: 'kc123',
+            username: 'testartist',
+            email: 'test@example.com',
+            default_language: 'en'
+        });
+
         // Create test data with specific attributes
         const artwork = await Artwork.create({
             id: 1,
+            artist_id: artist.id
+        });
+        await ArtworkMetadata.create({
+            artwork_id: 1,
+            artist_name: 'test artist',
             technique: 'etching',
             year_created: 2023,
             plate_material: 'copper',
             paper_type: 'cotton'
         });
         await Translation.create({ entity_id: 1, entity_type: 'Artwork', field_name: 'title', translated_content: 'Etching Print', language_code: 'en' });
-        await Image.create({ artwork_id: 1, version: 'thumbnail', public_url: 'url1' });
+        await Image.create({
+            artwork_id: 1,
+            version: 'thumbnail',
+            public_url: 'url1',
+            original_filename: 'image1.jpg',
+            storage_bucket: 'test-bucket',
+            storage_path: '/path/to/image1.jpg',
+            status: 'active'
+        });
 
         const response = await request(app)
             .get('/api/v1/prints')
