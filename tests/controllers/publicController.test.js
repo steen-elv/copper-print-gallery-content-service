@@ -10,7 +10,7 @@ jest.mock('../../src/config/database');
 const sequelize = require('../../src/config/database');
 
 // Import models after mocking the database
-const { Artist, Artwork, Translation, Image, ArtworkMetadata } = require('../../src/models/index');
+const {Artist, Artwork, Translation, Image, ArtworkMetadata} = require('../../src/models/index');
 
 // Import the controller
 const publicController = require('../../src/controllers/publicController');
@@ -21,15 +21,15 @@ app.get('/api/v1/prints', publicController.getPrints);
 
 describe('getPrints', () => {
     beforeAll(async () => {
-        await sequelize.sync({ force: true });
+        await sequelize.sync({force: true});
     });
 
     beforeEach(async () => {
-        await Artwork.destroy({ where: {} });
-        await Translation.destroy({ where: {} });
-        await Image.destroy({ where: {} });
-        await ArtworkMetadata.destroy({ where: {} });
-        await Artist.destroy({ where: {} });
+        await Artwork.destroy({where: {}});
+        await Translation.destroy({where: {}});
+        await Image.destroy({where: {}});
+        await ArtworkMetadata.destroy({where: {}});
+        await Artist.destroy({where: {}});
     });
 
     afterAll(async () => {
@@ -46,8 +46,8 @@ describe('getPrints', () => {
         });
 
         // Create test data
-        const artwork1 = await Artwork.create({ id: 1, artist_id: artist.id });
-        const artwork2 = await Artwork.create({ id: 2, artist_id: artist.id });
+        const artwork1 = await Artwork.create({id: 1, artist_id: artist.id});
+        const artwork2 = await Artwork.create({id: 2, artist_id: artist.id});
 
         await ArtworkMetadata.create({
             artwork_id: 1,
@@ -66,8 +66,20 @@ describe('getPrints', () => {
             paper_type: 'washi'
         });
 
-        await Translation.create({ entity_id: 1, entity_type: 'Artwork', field_name: 'title', translated_content: 'Print 1', language_code: 'en' });
-        await Translation.create({ entity_id: 2, entity_type: 'Artwork', field_name: 'title', translated_content: 'Print 2', language_code: 'en' });
+        await Translation.create({
+            entity_id: 1,
+            entity_type: 'Artwork',
+            field_name: 'title',
+            translated_content: 'Print 1',
+            language_code: 'en'
+        });
+        await Translation.create({
+            entity_id: 2,
+            entity_type: 'Artwork',
+            field_name: 'title',
+            translated_content: 'Print 2',
+            language_code: 'en'
+        });
 
         await Image.create({
             artwork_id: 1,
@@ -90,13 +102,13 @@ describe('getPrints', () => {
 
         const response = await request(app)
             .get('/api/v1/prints')
-            .query({ page: 1, limit: 10 });
+            .query({page: 1, limit: 10});
 
         expect(response.status).toBe(200);
         expect(response.body.prints.length).toBe(2);
         expect(response.body.prints).toEqual(expect.arrayContaining([
-            { id: 1, title: 'Print 1', thumbnailUrl: 'url1' },
-            { id: 2, title: 'Print 2', thumbnailUrl: 'url2' }
+            {id: 1, title: 'Print 1', thumbnailUrl: 'url1'},
+            {id: 2, title: 'Print 2', thumbnailUrl: 'url2'}
         ]));
         expect(response.body.totalCount).toEqual(2);
         expect(response.body.currentPage).toEqual(1);
@@ -125,7 +137,13 @@ describe('getPrints', () => {
             plate_material: 'copper',
             paper_type: 'cotton'
         });
-        await Translation.create({ entity_id: 1, entity_type: 'Artwork', field_name: 'title', translated_content: 'Etching Print', language_code: 'en' });
+        await Translation.create({
+            entity_id: 1,
+            entity_type: 'Artwork',
+            field_name: 'title',
+            translated_content: 'Etching Print',
+            language_code: 'en'
+        });
         await Image.create({
             artwork_id: 1,
             version: 'thumbnail',
@@ -149,7 +167,13 @@ describe('getPrints', () => {
             plate_material: 'zinc',
             paper_type: 'washi'
         });
-        await Translation.create({ entity_id: 2, entity_type: 'Artwork', field_name: 'title', translated_content: 'Aquatint Print', language_code: 'en' });
+        await Translation.create({
+            entity_id: 2,
+            entity_type: 'Artwork',
+            field_name: 'title',
+            translated_content: 'Aquatint Print',
+            language_code: 'en'
+        });
         await Image.create({
             artwork_id: 2,
             version: 'thumbnail',
@@ -182,11 +206,142 @@ describe('getPrints', () => {
         expect(response.body.totalCount).toBe(1);
     });
 
+    it('should handle pagination correctly', async () => {
+        const artist = await Artist.create({
+            keycloak_id: 'kc123',
+            username: 'testartist',
+            email: 'test@example.com',
+            default_language: 'en'
+        });
+
+        // Create 15 prints
+        for (let i = 1; i <= 15; i++) {
+            const artwork = await Artwork.create({id: i, artist_id: artist.id});
+            await ArtworkMetadata.create({
+                artwork_id: i,
+                artist_name: 'test artist',
+                technique: 'etching',
+                year_created: 2023,
+                plate_material: 'copper',
+                paper_type: 'cotton'
+            });
+            await Translation.create({
+                entity_id: i,
+                entity_type: 'Artwork',
+                field_name: 'title',
+                translated_content: `Print ${i}`,
+                language_code: 'en'
+            });
+            await Image.create({
+                artwork_id: i,
+                version: 'thumbnail',
+                public_url: `url${i}`,
+                original_filename: `image${i}.jpg`,
+                storage_bucket: 'test-bucket',
+                storage_path: `/path/to/image${i}.jpg`,
+                status: 'active'
+            });
+        }
+
+        const response = await request(app)
+            .get('/api/v1/prints')
+            .query({page: 2, limit: 10});
+
+        expect(response.status).toBe(200);
+        expect(response.body.prints).toHaveLength(5);
+        expect(response.body.currentPage).toBe(2);
+        expect(response.body.totalPages).toBe(2);
+        expect(response.body.totalCount).toBe(15);
+    });
+
+    it('should return empty array when no prints are available', async () => {
+        const response = await request(app)
+            .get('/api/v1/prints');
+
+        expect(response.status).toBe(200);
+        expect(response.body.prints).toEqual([]);
+        expect(response.body.totalCount).toBe(0);
+        expect(response.body.currentPage).toBe(1);
+        expect(response.body.totalPages).toBe(0);
+    });
+
+    it('should handle language parameter correctly', async () => {
+        const artist = await Artist.create({
+            keycloak_id: 'kc123',
+            username: 'testartist',
+            email: 'test@example.com',
+            default_language: 'en'
+        });
+
+        const artwork = await Artwork.create({id: 1, artist_id: artist.id});
+        await ArtworkMetadata.create({
+            artwork_id: 1,
+            artist_name: 'test artist',
+            technique: 'etching',
+            year_created: 2023,
+            plate_material: 'copper',
+            paper_type: 'cotton'
+        });
+        await Translation.create({
+            entity_id: 1,
+            entity_type: 'Artwork',
+            field_name: 'title',
+            translated_content: 'Print EN',
+            language_code: 'en'
+        });
+        await Translation.create({
+            entity_id: 1,
+            entity_type: 'Artwork',
+            field_name: 'title',
+            translated_content: 'Print DA',
+            language_code: 'da'
+        });
+        await Image.create({
+            artwork_id: 1,
+            version: 'thumbnail',
+            public_url: 'url1',
+            original_filename: 'image1.jpg',
+            storage_bucket: 'test-bucket',
+            storage_path: '/path/to/image1.jpg',
+            status: 'active'
+        });
+
+        const responseEN = await request(app)
+            .get('/api/v1/prints')
+            .query({language: 'en'});
+
+        expect(responseEN.status).toBe(200);
+        expect(responseEN.body.prints[0].title).toBe('Print EN');
+
+        const responseDA = await request(app)
+            .get('/api/v1/prints')
+            .query({language: 'da'});
+
+        expect(responseDA.status).toBe(200);
+        expect(responseDA.body.prints[0].title).toBe('Print DA');
+    });
+
+    it('should handle invalid query parameters gracefully', async () => {
+        const response = await request(app)
+            .get('/api/v1/prints')
+            .query({
+                page: 'invalid',
+                limit: 'invalid',
+                year: 'invalid'
+            });
+
+        expect(response.status).toBe(200);  // The controller should handle invalid inputs gracefully
+        expect(response.body.prints).toEqual([]);
+        expect(response.body.currentPage).toBe(1);  // Should default to 1
+        expect(response.body.totalPages).toBe(0);
+    });
+
+
     it('should handle errors', async () => {
         // Force an error by passing an invalid query parameter
         const response = await request(app)
             .get('/api/v1/prints')
-            .query({ limit: 'invalid' });
+            .query({limit: 'invalid'});
 
         expect(response.status).toBe(500);
     });
