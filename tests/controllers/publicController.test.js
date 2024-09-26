@@ -321,7 +321,7 @@ describe('getPrints', () => {
         expect(responseDA.body.prints[0].title).toBe('Print DA');
     });
 
-    it('should handle invalid query parameters gracefully', async () => {
+    it('should handle invalid query parameters with 400 Bad Request', async () => {
         const response = await request(app)
             .get('/api/v1/prints')
             .query({
@@ -330,12 +330,14 @@ describe('getPrints', () => {
                 year: 'invalid'
             });
 
-        expect(response.status).toBe(200);  // The controller should handle invalid inputs gracefully
-        expect(response.body.prints).toEqual([]);
-        expect(response.body.currentPage).toBe(1);  // Should default to 1
-        expect(response.body.totalPages).toBe(0);
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty('error');
+        expect(response.body.error).toHaveProperty('code', 'BAD_REQUEST');
+        expect(response.body.error).toHaveProperty('message');
+        expect(response.body.error.message).toContain('page');
+        expect(response.body.error.message).toContain('limit');
+        expect(response.body.error.message).toContain('year');
     });
-
 
     it('should handle errors', async () => {
         // Force an error by passing an invalid query parameter
