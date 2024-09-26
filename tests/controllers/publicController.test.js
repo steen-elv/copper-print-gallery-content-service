@@ -136,6 +136,30 @@ describe('getPrints', () => {
             status: 'active'
         });
 
+        // Create another artwork that doesn't match the query parameters
+        const artwork2 = await Artwork.create({
+            id: 2,
+            artist_id: artist.id
+        });
+        await ArtworkMetadata.create({
+            artwork_id: 2,
+            artist_name: 'test artist 2',
+            technique: 'aquatint',
+            year_created: 2022,
+            plate_material: 'zinc',
+            paper_type: 'washi'
+        });
+        await Translation.create({ entity_id: 2, entity_type: 'Artwork', field_name: 'title', translated_content: 'Aquatint Print', language_code: 'en' });
+        await Image.create({
+            artwork_id: 2,
+            version: 'thumbnail',
+            public_url: 'url2',
+            original_filename: 'image2.jpg',
+            storage_bucket: 'test-bucket',
+            storage_path: '/path/to/image2.jpg',
+            status: 'active'
+        });
+
         const response = await request(app)
             .get('/api/v1/prints')
             .query({
@@ -155,6 +179,7 @@ describe('getPrints', () => {
             title: 'Etching Print',
             thumbnailUrl: 'url1'
         });
+        expect(response.body.totalCount).toBe(1);
     });
 
     it('should handle errors', async () => {

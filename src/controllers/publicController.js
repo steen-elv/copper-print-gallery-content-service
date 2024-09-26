@@ -149,17 +149,20 @@ exports.getPrints = async (req, res, next) => {
 
     // Build the where clause based on the query parameters
     const whereClause = {};
-    if (technique) whereClause['$ArtworkMetadata.technique$'] = technique;
-    if (year) whereClause['$ArtworkMetadata.year_created$'] = Number(year);
-    if (plateType) whereClause['$ArtworkMetadata.plate_material$'] = plateType;
-    if (paperType) whereClause['$ArtworkMetadata.paper_type$'] = paperType;
+    const metadataWhereClause = {};
+
+    if (technique) metadataWhereClause.technique = technique;
+    if (year) metadataWhereClause.year_created = Number(year);
+    if (plateType) metadataWhereClause.plate_material = plateType;
+    if (paperType) metadataWhereClause.paper_type = paperType;
 
     const { count, rows } = await Artwork.findAndCountAll({
       where: whereClause,
       include: [
         {
           model: ArtworkMetadata,
-          required: false
+          where: metadataWhereClause,
+          required: Object.keys(metadataWhereClause).length > 0
         },
         {
           model: Translation,
