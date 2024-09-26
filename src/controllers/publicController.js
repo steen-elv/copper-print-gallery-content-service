@@ -2,7 +2,7 @@
 
 const { Gallery, Artwork, ArtworkMetadata, Image, GalleryArtwork ,Translation} = require('../models');
 const { Op } = require('sequelize');
-const {sequelize} = require('../config/database');
+const sequelize = require('../config/database');
 
 exports.getGalleries = async (req, res, next) => {
   try {
