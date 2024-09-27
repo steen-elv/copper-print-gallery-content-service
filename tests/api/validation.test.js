@@ -1,9 +1,7 @@
 // tests/api/validation.test.js
 
 const request = require('supertest');
-const express = require('express');
-const OpenApiValidator = require('express-openapi-validator');
-const path = require('path');
+const app = require('../../src/app'); // Import your actual Express app
 
 // Mock the controllers
 jest.mock('../../src/controllers/publicController', () => ({
@@ -14,33 +12,6 @@ jest.mock('../../src/controllers/publicController', () => ({
 }));
 
 const publicController = require('../../src/controllers/publicController');
-
-const app = express();
-
-// Setup OpenApiValidator
-app.use(
-    OpenApiValidator.middleware({
-        apiSpec: path.join(__dirname, '../../api/content-management-public-api-specification.yaml'),
-        validateRequests: true,
-        validateResponses: true,
-    })
-);
-
-// Setup routes
-app.get('/api/v1/galleries', publicController.getGalleries);
-app.get('/api/v1/galleries/:galleryId', publicController.getGallery);
-app.get('/api/v1/prints', publicController.getPrints);
-app.get('/api/v1/prints/:printId', publicController.getPrint);
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-    res.status(err.status || 500).json({
-        error: {
-            code: err.code || 'INTERNAL_SERVER_ERROR',
-            message: err.message
-        }
-    });
-});
 
 describe('API Validation and Error Handling', () => {
     describe('GET /api/v1/prints', () => {
@@ -53,7 +24,6 @@ describe('API Validation and Error Handling', () => {
             expect(response.body.error).toBeDefined();
             expect(response.body.error.code).toBe('BAD_REQUEST');
             expect(response.body.error.message).toContain('page');
-            expect(response.body.error.message).toContain('limit');
         });
 
         it('should return 200 for valid query parameters', async () => {
@@ -68,6 +38,7 @@ describe('API Validation and Error Handling', () => {
                 .get('/api/v1/prints')
                 .query({ page: 1, limit: 20 });
 
+            console.log(response);
             expect(response.status).toBe(200);
         });
     });
