@@ -1,6 +1,6 @@
 // src/middleware/errorMiddleware.js
 
-const logger = require('../utils/logger');
+const OpenApiValidator = require('express-openapi-validator');
 
 const notFound = (req, res, next) => {
   const error = new Error(`Not Found - ${req.originalUrl}`);
@@ -9,12 +9,28 @@ const notFound = (req, res, next) => {
 };
 
 const errorHandler = (err, req, res, next) => {
-  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-  res.status(statusCode);
-  logger.error(`${err.message} - ${req.originalUrl} - ${req.method} - ${req.ip}`);
-  res.json({
-    message: err.message,
-    stack: process.env.NODE_ENV === 'production' ? '🥞' : err.stack,
+  let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  let message = err.message;
+  let errorCode = 'INTERNAL_SERVER_ERROR';
+
+  // Handle OpenApiValidator errors
+  if (err instanceof OpenApiValidator.error.BadRequest) {
+    statusCode = 400;
+    errorCode = 'BAD_REQUEST';
+    // The error message from OpenApiValidator is typically well-formatted,
+    // but you can customize it further if needed
+    message = err.message;
+  }
+
+  // Handle other specific error types here
+  // ...
+
+  res.status(statusCode).json({
+    error: {
+      code: errorCode,
+      message: message,
+      stack: process.env.NODE_ENV === 'production' ? '🥞' : err.stack,
+    }
   });
 };
 
