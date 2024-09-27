@@ -136,12 +136,12 @@ exports.getPrints = async (req, res, next) => {
       page = 1,
       limit = 20,
       language = 'en',
-      galleryId,
       technique,
       year,
       plateType,
       paperType
     } = req.query;
+    const { galleryId } = req.params;
 
     const pageNum = Number(page);
     const limitNum = Number(limit);

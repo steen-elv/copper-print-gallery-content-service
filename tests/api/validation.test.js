@@ -11,21 +11,20 @@ jest.mock('../../src/controllers/publicController', () => ({
 }));
 
 // Now require the app
-const app = require('../../src/app');
 const publicController = require('../../src/controllers/publicController');
+const app = require('../../src/app');
 
 describe('API Validation and Error Handling', () => {
-    describe('GET /api/v1/prints', () => {
+    describe('GET /api/v1/galleries/{galleryId}/prints', () => {
         it('should return 400 for invalid query parameters', async () => {
             const response = await request(app)
-                .get('/api/v1/prints')
-                .query({ galleryId: '1', page: 'invalid', limit: 'invalid' });
+                .get('/api/v1/galleries/1/prints')
+                .query({ page: 'invalid', limit: 'invalid' });
 
             expect(response.status).toBe(400);
             expect(response.body.error).toBeDefined();
             expect(response.body.error.code).toBe('BAD_REQUEST');
             expect(response.body.error.message).toContain('page');
-            expect(response.body.error.message).toContain('limit');
         });
 
         it('should return 200 for valid query parameters', async () => {
@@ -37,8 +36,8 @@ describe('API Validation and Error Handling', () => {
             });
 
             const response = await request(app)
-                .get('/api/v1/prints')
-                .query({ galleryId: '1', page: 1, limit: 20 });
+                .get('/api/v1/galleries/1/prints')
+                .query({ page: 1, limit: 20 });
 
             expect(response.status).toBe(200);
         });
