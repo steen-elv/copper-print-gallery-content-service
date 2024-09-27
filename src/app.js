@@ -3,8 +3,7 @@
 const express = require('express');
 const path = require('path');
 const OpenApiValidator = require('express-openapi-validator');
-const publicController = require('./controllers/publicController');
-const { errorHandler, notFound } = require('./middleware/errorMiddleware');
+const { errorHandler } = require('./middleware/errorMiddleware');
 
 const app = express();
 
@@ -23,7 +22,6 @@ app.use(
 );
 
 // Error handling
-app.use(notFound);
 app.use(errorHandler);
 
 module.exports = app;

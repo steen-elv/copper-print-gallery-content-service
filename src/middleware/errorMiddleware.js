@@ -2,12 +2,6 @@
 
 const OpenApiValidator = require('express-openapi-validator');
 
-const notFound = (req, res, next) => {
-  const error = new Error(`Not Found - ${req.originalUrl}`);
-  res.status(404);
-  next(error);
-};
-
 const errorHandler = (err, req, res, next) => {
   let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   let message = err.message;
@@ -17,11 +11,15 @@ const errorHandler = (err, req, res, next) => {
   if (err instanceof OpenApiValidator.error.BadRequest) {
     statusCode = 400;
     errorCode = 'BAD_REQUEST';
-    // The error message from OpenApiValidator is typically well-formatted,
-    // but you can customize it further if needed
     message = err.message;
   }
-
+  // Handle 404 errors
+  else if (err.name === 'NotFoundError' || err.statusCode === 404) {
+    statusCode = 404;
+    errorCode = 'NOT_FOUND';
+    // Differentiate between route not found and resource not found
+    message = err.resourceNotFound ? err.message : `Not Found - ${req.originalUrl}`;
+  }
   // Handle other specific error types here
   // ...
 
@@ -34,4 +32,4 @@ const errorHandler = (err, req, res, next) => {
   });
 };
 
-module.exports = { notFound, errorHandler };
+module.exports = { errorHandler };
