@@ -56,7 +56,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /prints:
+  /prints/{galleryId}:
     get:
       operationId: getPrints
       x-eov-operation-handler: publicController

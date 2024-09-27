@@ -148,7 +148,7 @@ exports.getPrints = async (req, res, next) => {
     const offset = (pageNum - 1) * limitNum;
 
     // Build the where clause based on the query parameters
-    const whereClause = {};
+    const whereClause = {gallery_id: galleryId};
     const metadataWhereClause = {};
 
     if (technique) metadataWhereClause.technique = technique;

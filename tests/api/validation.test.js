@@ -1,9 +1,8 @@
 // tests/api/validation.test.js
 
 const request = require('supertest');
-const app = require('../../src/app'); // Import your actual Express app
 
-// Mock the controllers
+// Mock the controllers before requiring the app
 jest.mock('../../src/controllers/publicController', () => ({
     getGalleries: jest.fn(),
     getGallery: jest.fn(),
@@ -11,6 +10,8 @@ jest.mock('../../src/controllers/publicController', () => ({
     getPrint: jest.fn()
 }));
 
+// Now require the app
+const app = require('../../src/app');
 const publicController = require('../../src/controllers/publicController');
 
 describe('API Validation and Error Handling', () => {
@@ -18,12 +19,13 @@ describe('API Validation and Error Handling', () => {
         it('should return 400 for invalid query parameters', async () => {
             const response = await request(app)
                 .get('/api/v1/prints')
-                .query({ page: 'invalid', limit: 'invalid' });
+                .query({ galleryId: '1', page: 'invalid', limit: 'invalid' });
 
             expect(response.status).toBe(400);
             expect(response.body.error).toBeDefined();
             expect(response.body.error.code).toBe('BAD_REQUEST');
             expect(response.body.error.message).toContain('page');
+            expect(response.body.error.message).toContain('limit');
         });
 
         it('should return 200 for valid query parameters', async () => {
@@ -36,9 +38,8 @@ describe('API Validation and Error Handling', () => {
 
             const response = await request(app)
                 .get('/api/v1/prints')
-                .query({ page: 1, limit: 20 });
+                .query({ galleryId: '1', page: 1, limit: 20 });
 
-            console.log(response);
             expect(response.status).toBe(200);
         });
     });
@@ -55,10 +56,11 @@ describe('API Validation and Error Handling', () => {
         });
 
         it('should return 404 for non-existent printId', async () => {
-            publicController.getPrint.mockRejectedValue({
-                status: 404,
-                code: 'NOT_FOUND',
-                message: 'Print not found'
+            publicController.getPrint.mockImplementation(() => {
+                const error = new Error('Print not found');
+                error.status = 404;
+                error.code = 'NOT_FOUND';
+                throw error;
             });
 
             const response = await request(app)
