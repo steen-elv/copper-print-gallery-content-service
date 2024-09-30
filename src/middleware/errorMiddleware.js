@@ -3,7 +3,7 @@
 const OpenApiValidator = require('express-openapi-validator');
 
 const errorHandler = (err, req, res, next) => {
-  let statusCode = err.statusCode ? err.statusCode : err.status;
+  let statusCode = err.statusCode || err.status;
   let message = err.message;
   let errorCode = 'INTERNAL_SERVER_ERROR';
 
