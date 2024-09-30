@@ -3,8 +3,7 @@
 const OpenApiValidator = require('express-openapi-validator');
 
 const errorHandler = (err, req, res, next) => {
-  console.log(err.statusCode);
-  let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  let statusCode = err.statusCode ? err.statusCode : err.status;
   let message = err.message;
   let errorCode = 'INTERNAL_SERVER_ERROR';
 
@@ -16,7 +15,6 @@ const errorHandler = (err, req, res, next) => {
   }
   // Handle 404 errors
   else if (err.name === 'NotFoundError' || err.statusCode === 404) {
-    console.log(err);
     statusCode = 404;
     errorCode = 'NOT_FOUND';
     // Differentiate between route not found and resource not found
