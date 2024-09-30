@@ -19,7 +19,7 @@ describe('API Validation and Error Handling', () => {
         it('should return 400 for invalid query parameters', async () => {
             const response = await request(app)
                 .get('/api/v1/galleries/1/prints')
-                .query({ page: 'invalid', limit: 'invalid' });
+                .query({page: 'invalid', limit: 'invalid'});
 
             expect(response.status).toBe(400);
             expect(response.body.error).toBeDefined();
@@ -28,16 +28,19 @@ describe('API Validation and Error Handling', () => {
         });
 
         it('should return 200 for valid query parameters', async () => {
-            publicController.getPrints.mockResolvedValue({
-                prints: [],
-                totalCount: 0,
-                currentPage: 1,
-                totalPages: 0
+            publicController.getPrints.mockImplementation((req, res, next) => {
+                let responseValue = {
+                    prints: [],
+                    totalCount: 0,
+                    currentPage: 1,
+                    totalPages: 0
+                }
+                res.json(responseValue);
             });
 
             const response = await request(app)
                 .get('/api/v1/galleries/1/prints')
-                .query({ page: 1, limit: 20 });
+                .query({page: 1, limit: 20});
 
             expect(response.status).toBe(200);
         });
@@ -55,11 +58,12 @@ describe('API Validation and Error Handling', () => {
         });
 
         it('should return 404 for non-existent printId', async () => {
-            publicController.getPrint.mockImplementation(() => {
+            publicController.getPrint.mockImplementation((req, res, next) => {
                 const error = new Error('Print not found');
-                error.status = 404;
+                error.statusCode = 404;
                 error.code = 'NOT_FOUND';
-                throw error;
+                error.resourceNotFound = true;
+                next(error);
             });
 
             const response = await request(app)
