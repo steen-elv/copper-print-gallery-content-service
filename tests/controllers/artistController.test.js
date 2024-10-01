@@ -59,8 +59,14 @@ describe('getArtistGalleries', () => {
 
     it('should return galleries with correct pagination', async () => {
         // Create test data
-        const gallery1 = await Gallery.create({artist_id: testArtist.id});
-        const gallery2 = await Gallery.create({artist_id: testArtist.id});
+        const gallery1 = await Gallery.create({
+            artist_id: testArtist.id,
+            status: 'published'
+        });
+        const gallery2 = await Gallery.create({
+            artist_id: testArtist.id,
+            status: 'draft'
+        });
 
         const artwork1 = await Artwork.create();
         const artwork2 = await Artwork.create();
@@ -102,12 +108,14 @@ describe('getArtistGalleries', () => {
                 id: gallery1.id,
                 title: 'Gallery 1',
                 description: 'Description 1',
+                status: 'published',
                 printCount: 2
             }),
             expect.objectContaining({
                 id: gallery2.id,
                 title: 'Gallery 2',
                 description: '',
+                status: 'draft',
                 printCount: 1
             })
         ]));
@@ -119,7 +127,10 @@ describe('getArtistGalleries', () => {
     it('should handle pagination correctly', async () => {
         // Create 15 galleries
         for (let i = 1; i <= 15; i++) {
-            const gallery = await Gallery.create({artist_id: testArtist.id});
+            const gallery = await Gallery.create({
+                artist_id: testArtist.id,
+                status: i % 2 === 0 ? 'published' : 'draft'
+            });
             await Translation.create({
                 entity_id: gallery.id,
                 entity_type: 'Gallery',
@@ -152,7 +163,10 @@ describe('getArtistGalleries', () => {
     });
 
     it('should handle language parameter correctly', async () => {
-        const gallery = await Gallery.create({artist_id: testArtist.id});
+        const gallery = await Gallery.create({
+            artist_id: testArtist.id,
+            status: 'published'
+        });
 
         await Translation.create({
             entity_id: gallery.id,
