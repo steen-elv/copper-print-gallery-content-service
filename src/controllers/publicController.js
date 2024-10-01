@@ -234,6 +234,7 @@ exports.getPrint = async (req, res, next) => {
       let err = new Error('Artwork not found');
       err.status = 404;
       err.resourceNotFound = true;
+      throw err;
     }
 
     // Prepare the response object with translations

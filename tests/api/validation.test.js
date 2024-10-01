@@ -59,7 +59,7 @@ describe('API Validation and Error Handling', () => {
 
         it('should return 404 for non-existent printId', async () => {
             publicController.getPrint.mockImplementation((req, res, next) => {
-                const error = new Error('Print not found');
+                const error = new Error('Artwork not found');
                 error.statusCode = 404;
                 error.code = 'NOT_FOUND';
                 error.resourceNotFound = true;
@@ -72,7 +72,7 @@ describe('API Validation and Error Handling', () => {
             expect(response.status).toBe(404);
             expect(response.body.error).toBeDefined();
             expect(response.body.error.code).toBe('NOT_FOUND');
-            expect(response.body.error.message).toBe('Print not found');
+            expect(response.body.error.message).toBe('Artwork not found');
         });
     });
 
