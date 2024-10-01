@@ -1,0 +1,923 @@
+openapi: 3.1.0
+info:
+  title: Copper Print Gallery Artist API
+  version: 1.0.0
+  description: API for artists to manage their galleries and copper print artworks in the Copper Print Gallery system
+
+servers:
+  - url: '{protocol}://{environment}.artist.{domain}/api/v1'
+    variables:
+      protocol:
+        enum:
+          - http
+          - https
+        default: https
+      environment:
+        enum:
+          - dev
+          - staging
+          - prod
+        default: prod
+      domain:
+        default: api.copperprintgallery.com
+        description: Base domain for the API
+
+paths:
+  /galleries:
+    get:
+      operationId: getArtistGalleries
+      x-eov-operation-handler: artistController
+      summary: List artist's galleries
+      description: Retrieves a list of all galleries owned by the authenticated artist
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/GalleryListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      operationId: createGallery
+      summary: Create a new gallery
+      description: Creates a new gallery for the authenticated artist
+      requestBody:
+        $ref: '#/components/requestBodies/GalleryCreate'
+      responses:
+        '201':
+          $ref: '#/components/responses/GalleryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /galleries/{galleryId}:
+    get:
+      operationId: getArtisGalleryDetails
+      x-eov-operation-handler: artistController
+      summary: Get gallery details
+      description: Retrieves details of a specific gallery owned by the authenticated artist
+      parameters:
+        - $ref: '#/components/parameters/galleryId'
+      responses:
+        '200':
+          $ref: '#/components/responses/GalleryDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateGallery
+      x-eov-operation-handler: artistController
+      summary: Update a gallery
+      description: Updates an existing gallery owned by the authenticated artist
+      parameters:
+        - $ref: '#/components/parameters/galleryId'
+      requestBody:
+        $ref: '#/components/requestBodies/GalleryUpdate'
+      responses:
+        '200':
+          $ref: '#/components/responses/GalleryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteGallery
+      x-eov-operation-handler: artistController
+      summary: Delete a gallery
+      description: Deletes a gallery owned by the authenticated artist
+      parameters:
+        - $ref: '#/components/parameters/galleryId'
+      responses:
+        '204':
+          description: Gallery successfully deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /galleries/{galleryId}/prints:
+    get:
+      operationId: getGalleryPrints
+      x-eov-operation-handler: artistController
+      summary: Get prints in a gallery with their order
+      description: Retrieves a list of prints in the specified gallery, including their order
+      parameters:
+        - $ref: '#/components/parameters/galleryId'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/GalleryPrintsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      operationId: updatePrintOrder
+      x-eov-operation-handler: artistController
+      summary: Update print order in a gallery
+      description: Updates the order of prints within the specified gallery
+      parameters:
+        - $ref: '#/components/parameters/galleryId'
+      requestBody:
+        $ref: '#/components/requestBodies/UpdatePrintOrder'
+      responses:
+        '200':
+          description: Print order updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /galleries/{galleryId}/prints/{printId}:
+    post:
+      operationId: addPrintToGallery
+      x-eov-operation-handler: artistController
+      summary: Add a print to a gallery
+      description: Adds a print to the specified gallery at a specific position
+      parameters:
+        - $ref: '#/components/parameters/galleryId'
+        - $ref: '#/components/parameters/printId'
+      requestBody:
+        $ref: '#/components/requestBodies/AddPrintToGallery'
+      responses:
+        '201':
+          description: Print added to gallery successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Print already exists in the gallery
+
+    delete:
+      operationId: deletePrintFromGallery
+      x-eov-operation-handler: artistController
+      summary: Remove a print from a gallery
+      description: Removes a print from the specified gallery
+      parameters:
+        - $ref: '#/components/parameters/galleryId'
+        - $ref: '#/components/parameters/printId'
+      responses:
+        '204':
+          description: Print removed from gallery successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /prints:
+    get:
+      operationId: getArtistPrints
+      x-eov-operation-handler: artistController
+      summary: List artist's prints
+      description: Retrieves a list of all prints created by the authenticated artist
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/galleryId'
+        - $ref: '#/components/parameters/technique'
+        - $ref: '#/components/parameters/year'
+        - $ref: '#/components/parameters/plateType'
+        - $ref: '#/components/parameters/paperType'
+      responses:
+        '200':
+          $ref: '#/components/responses/PrintListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      operationId: createPrint
+      x-eov-operation-handler: artistController
+      summary: Create a new print
+      description: Creates a new print for the authenticated artist
+      requestBody:
+        $ref: '#/components/requestBodies/PrintCreate'
+      responses:
+        '201':
+          $ref: '#/components/responses/PrintResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /prints/{printId}:
+    get:
+      operationId: getArtistPrintDetails
+      x-eov-operation-handler: artistController
+      summary: Get print details
+      description: Retrieves details of a specific print created by the authenticated artist
+      parameters:
+        - $ref: '#/components/parameters/printId'
+      responses:
+        '200':
+          $ref: '#/components/responses/PrintDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updatePrint
+      x-eov-operation-handler: artistController
+      summary: Update a print
+      description: Updates an existing print created by the authenticated artist
+      parameters:
+        - $ref: '#/components/parameters/printId'
+      requestBody:
+        $ref: '#/components/requestBodies/PrintUpdate'
+      responses:
+        '200':
+          $ref: '#/components/responses/PrintResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deletePrint
+      x-eov-operation-handler: artistController
+      summary: Delete a print
+      description: Deletes a print created by the authenticated artist
+      parameters:
+        - $ref: '#/components/parameters/printId'
+      responses:
+        '204':
+          description: Print successfully deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  schemas:
+    ArtistGallery:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [ draft, published ]
+        printCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ArtistGalleryDetail:
+      allOf:
+        - $ref: '#/components/schemas/ArtistGallery'
+        - type: object
+          properties:
+            prints:
+              type: array
+              items:
+                $ref: '#/components/schemas/ArtistPrintSummary'
+
+    ArtistGalleryList:
+      type: object
+      properties:
+        galleries:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArtistGallery'
+        totalCount:
+          type: integer
+        currentPage:
+          type: integer
+        totalPages:
+          type: integer
+
+    GalleryPrint:
+      type: object
+      properties:
+        printId:
+          type: integer
+        title:
+          type: string
+        thumbnailUrl:
+          type: string
+        order:
+          type: integer
+
+    GalleryPrintsList:
+      type: object
+      properties:
+        prints:
+          type: array
+          items:
+            $ref: '#/components/schemas/GalleryPrint'
+        totalCount:
+          type: integer
+        currentPage:
+          type: integer
+        totalPages:
+          type: integer
+
+
+    ArtistPrint:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        technique:
+          type: string
+        plateType:
+          type: string
+        dimensions:
+          type: string
+        year:
+          type: integer
+        editionSize:
+          type: integer
+        editionNumber:
+          type: integer
+        paperType:
+          type: string
+        inkType:
+          type: string
+        printingPress:
+          type: string
+        status:
+          type: string
+          enum: [ draft, published ]
+        artistNotes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ArtistPrintDetail:
+      allOf:
+        - $ref: '#/components/schemas/ArtistPrint'
+        - type: object
+          properties:
+            images:
+              type: array
+              items:
+                $ref: '#/components/schemas/ImageVersion'
+
+    ArtistPrintList:
+      type: object
+      properties:
+        prints:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArtistPrint'
+        totalCount:
+          type: integer
+        currentPage:
+          type: integer
+        totalPages:
+          type: integer
+
+    ArtistPrintSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        thumbnailUrl:
+          type: string
+        status:
+          type: string
+          enum: [ draft, published ]
+
+    ImageVersion:
+      type: object
+      properties:
+        version:
+          type: string
+        url:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+  parameters:
+    page:
+      in: query
+      name: page
+      schema:
+        type: integer
+        minimum: 1
+      description: Page number for pagination
+    limit:
+      in: query
+      name: limit
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+      description: Number of items per page
+    galleryId:
+      in: path
+      name: galleryId
+      required: true
+      schema:
+        type: integer
+      description: Unique identifier of the gallery
+    printId:
+      in: path
+      name: printId
+      required: true
+      schema:
+        type: integer
+      description: Unique identifier of the print
+    technique:
+      in: query
+      name: technique
+      schema:
+        type: string
+      description: Filter prints by technique (e.g., etching, aquatint, mezzotint)
+    year:
+      in: query
+      name: year
+      schema:
+        type: integer
+      description: Filter prints by year of creation
+    plateType:
+      in: query
+      name: plateType
+      schema:
+        type: string
+      description: Filter prints by plate type (e.g., copper, zinc)
+    paperType:
+      in: query
+      name: paperType
+      schema:
+        type: string
+      description: Filter prints by paper type
+
+  responses:
+    GalleryListResponse:
+      description: Successful response with list of artist's galleries
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ArtistGalleryList'
+          example:
+            galleries:
+              - id: 1
+                title: "Etchings of Copenhagen"
+                description: "A collection of copper plate etchings depicting iconic scenes from Copenhagen"
+                status: "published"
+                printCount: 15
+                createdAt: "2023-07-01T12:00:00Z"
+                updatedAt: "2023-07-15T14:30:00Z"
+              - id: 2
+                title: "Danish Landscapes"
+                description: "Copper prints showcasing the beauty of Danish rural landscapes"
+                status: "draft"
+                printCount: 20
+                createdAt: "2023-06-15T10:00:00Z"
+                updatedAt: "2023-07-10T09:45:00Z"
+            totalCount: 2
+            currentPage: 1
+            totalPages: 1
+
+    GalleryResponse:
+      description: Successful response with gallery details
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ArtistGallery'
+          example:
+            id: 1
+            title: "Etchings of Copenhagen"
+            description: "A collection of copper plate etchings depicting iconic scenes from Copenhagen"
+            status: "published"
+            printCount: 15
+            createdAt: "2023-07-01T12:00:00Z"
+            updatedAt: "2023-07-15T14:30:00Z"
+
+    GalleryDetailResponse:
+      description: Successful response with detailed gallery information including associated prints
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ArtistGalleryDetail'
+          example:
+            id: 1
+            title: "Etchings of Copenhagen"
+            description: "A collection of copper plate etchings depicting iconic scenes from Copenhagen"
+            status: "published"
+            printCount: 2
+            createdAt: "2023-07-01T12:00:00Z"
+            updatedAt: "2023-07-15T14:30:00Z"
+            prints:
+              - id: 101
+                title: "The Little Mermaid"
+                thumbnailUrl: "https://cdn.copperprintgallery.com/thumbnails/little-mermaid-etching.jpg"
+                status: "published"
+              - id: 102
+                title: "Nyhavn Canal"
+                thumbnailUrl: "https://cdn.copperprintgallery.com/thumbnails/nyhavn-canal-etching.jpg"
+                status: "draft"
+
+    GalleryPrintsResponse:
+      description: Successful response with list of prints in a gallery and their order
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GalleryPrintsList'
+          example:
+            prints:
+              - printId: 101
+                title: "The Little Mermaid"
+                thumbnailUrl: "https://cdn.copperprintgallery.com/thumbnails/little-mermaid-etching.jpg"
+                order: 1
+              - printId: 102
+                title: "Nyhavn Canal"
+                thumbnailUrl: "https://cdn.copperprintgallery.com/thumbnails/nyhavn-canal-etching.jpg"
+                order: 2
+            totalCount: 2
+            currentPage: 1
+            totalPages: 1
+
+    PrintListResponse:
+      description: Successful response with list of artist's prints
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ArtistPrintList'
+          example:
+            prints:
+              - id: 101
+                title: "The Little Mermaid"
+                description: "An intricate etching of the iconic Little Mermaid statue"
+                technique: "Etching"
+                plateType: "Copper"
+                dimensions: "30cm x 40cm"
+                year: 2023
+                editionSize: 50
+                editionNumber: 1
+                paperType: "Hahnemühle"
+                inkType: "Oil-based"
+                printingPress: "Etching Press Model X"
+                status: "published"
+                artistNotes: "Inspired by early morning light on the statue"
+                createdAt: "2023-07-01T10:00:00Z"
+                updatedAt: "2023-07-01T10:00:00Z"
+              - id: 102
+                title: "Nyhavn Canal"
+                description: "A vibrant aquatint depicting the colorful Nyhavn canal"
+                technique: "Aquatint"
+                plateType: "Copper"
+                dimensions: "25cm x 35cm"
+                year: 2023
+                editionSize: 75
+                editionNumber: 1
+                paperType: "Somerset Velvet"
+                inkType: "Water-based"
+                printingPress: "Aquatint Press Model Y"
+                status: "draft"
+                artistNotes: "Experimenting with vivid color contrasts"
+                createdAt: "2023-07-02T11:00:00Z"
+                updatedAt: "2023-07-02T11:00:00Z"
+            totalCount: 2
+            currentPage: 1
+            totalPages: 1
+
+    PrintResponse:
+      description: Successful response with print details
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ArtistPrint'
+          example:
+            id: 101
+            title: "The Little Mermaid"
+            description: "An intricate etching of the iconic Little Mermaid statue"
+            technique: "Etching"
+            plateType: "Copper"
+            dimensions: "30cm x 40cm"
+            year: 2023
+            editionSize: 50
+            editionNumber: 1
+            paperType: "Hahnemühle"
+            inkType: "Oil-based"
+            printingPress: "Etching Press Model X"
+            status: "published"
+            artistNotes: "Inspired by early morning light on the statue"
+            createdAt: "2023-07-01T10:00:00Z"
+            updatedAt: "2023-07-01T10:00:00Z"
+
+    PrintDetailResponse:
+      description: Successful response with detailed print information
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ArtistPrintDetail'
+          example:
+            id: 101
+            title: "The Little Mermaid"
+            description: "An intricate etching of the iconic Little Mermaid statue"
+            technique: "Etching"
+            plateType: "Copper"
+            dimensions: "30cm x 40cm"
+            year: 2023
+            editionSize: 50
+            editionNumber: 1
+            paperType: "Hahnemühle"
+            inkType: "Oil-based"
+            printingPress: "Etching Press Model X"
+            status: "published"
+            artistNotes: "Inspired by early morning light on the statue"
+            createdAt: "2023-07-01T10:00:00Z"
+            updatedAt: "2023-07-01T10:00:00Z"
+            images:
+              - version: "thumbnail"
+                url: "https://cdn.copperprintgallery.com/thumbnails/little-mermaid-etching.jpg"
+                width: 300
+                height: 200
+              - version: "full"
+                url: "https://cdn.copperprintgallery.com/full/little-mermaid-etching.jpg"
+                width: 1920
+                height: 1280
+
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "BAD_REQUEST"
+              message: "The request was invalid or cannot be served."
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "UNAUTHORIZED"
+              message: "Authentication is required and has failed or has not been provided."
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "FORBIDDEN"
+              message: "The request is understood, but it has been refused or access is not allowed."
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "RESOURCE_NOT_FOUND"
+              message: "The requested resource could not be found."
+
+  requestBodies:
+    GalleryCreate:
+      description: Request body for creating a new gallery
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - title
+            properties:
+              title:
+                type: string
+              description:
+                type: string
+              status:
+                type: string
+                enum: [ draft, published ]
+          example:
+            title: "Modern Copenhagen"
+            description: "A series of prints capturing the modern architecture of Copenhagen"
+            status: "draft"
+
+    GalleryUpdate:
+      description: Request body for updating an existing gallery
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+              description:
+                type: string
+              status:
+                type: string
+                enum: [ draft, published ]
+          example:
+            title: "Contemporary Copenhagen"
+            description: "An updated series of prints showcasing contemporary architecture in Copenhagen"
+            status: "published"
+
+    UpdatePrintOrder:
+      description: Request body for updating the order of prints in a gallery
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              printOrders:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    printId:
+                      type: integer
+                    newOrder:
+                      type: integer
+          example:
+            printOrders:
+              - printId: 101
+                newOrder: 2
+              - printId: 102
+                newOrder: 1
+
+    AddPrintToGallery:
+      description: Request body for adding a print to a gallery
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              order:
+                type: integer
+          example:
+            order: 3
+
+    PrintCreate:
+      description: Request body for creating a new print
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - title
+              - technique
+              - plateType
+              - dimensions
+              - year
+              - editionSize
+            properties:
+              title:
+                type: string
+              description:
+                type: string
+              technique:
+                type: string
+              plateType:
+                type: string
+              dimensions:
+                type: string
+              year:
+                type: integer
+              editionSize:
+                type: integer
+              paperType:
+                type: string
+              inkType:
+                type: string
+              printingPress:
+                type: string
+              status:
+                type: string
+                enum: [ draft, published ]
+              artistNotes:
+                type: string
+          example:
+            title: "Øresund Bridge"
+            description: "A detailed etching of the Øresund Bridge connecting Denmark and Sweden"
+            technique: "Etching"
+            plateType: "Copper"
+            dimensions: "40cm x 60cm"
+            year: 2023
+            editionSize: 50
+            paperType: "Somerset Velvet"
+            inkType: "Oil-based"
+            printingPress: "Etching Press Model Z"
+            status: "draft"
+            artistNotes: "Focusing on the interplay of light and shadow on the bridge structure"
+
+    PrintUpdate:
+      description: Request body for updating an existing print
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+              description:
+                type: string
+              technique:
+                type: string
+              plateType:
+                type: string
+              dimensions:
+                type: string
+              year:
+                type: integer
+              editionSize:
+                type: integer
+              paperType:
+                type: string
+              inkType:
+                type: string
+              printingPress:
+                type: string
+              status:
+                type: string
+                enum: [ draft, published ]
+              artistNotes:
+                type: string
+          example:
+            title: "Øresund Bridge at Sunset"
+            description: "An updated etching showcasing the Øresund Bridge bathed in warm sunset hues"
+            status: "published"
+            artistNotes: "Refined to emphasize the golden light of sunset on the bridge"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  security:
+    - BearerAuth: [ ]

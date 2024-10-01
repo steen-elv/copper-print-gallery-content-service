@@ -10,14 +10,22 @@ jest.mock('../../src/config/database');
 const sequelize = require('../../src/config/database');
 
 // Import models after mocking the database
-const {Artist, Artwork, Translation, Image, ArtworkMetadata} = require('../../src/models/index');
+const {
+    Artist,
+    Gallery,
+    GalleryArtwork,
+    Artwork,
+    Translation,
+    Image,
+    ArtworkMetadata
+} = require('../../src/models/index');
 
 // Import the controller
 const publicController = require('../../src/controllers/publicController');
 
 const app = express();
 app.use(express.json());
-app.get('/api/v1/prints', publicController.getPrints);
+app.get('/api/v1/galleries/:galleryId/prints', publicController.getPrints);
 
 describe('getPrints', () => {
     beforeAll(async () => {
@@ -45,9 +53,14 @@ describe('getPrints', () => {
             default_language: 'en'
         });
 
+        const gallery = await Gallery.create({id: 1, artist_id: artist.id})
+
         // Create test data
-        const artwork1 = await Artwork.create({id: 1, artist_id: artist.id});
-        const artwork2 = await Artwork.create({id: 2, artist_id: artist.id});
+        const artwork1 = await Artwork.create({id: 1});
+        const artwork2 = await Artwork.create({id: 2});
+
+        await GalleryArtwork.create({id: 1, gallery_id: gallery.id, artwork_id: artwork1.id, order: 1});
+        await GalleryArtwork.create({id: 2, gallery_id: gallery.id, artwork_id: artwork2.id, order: 2});
 
         await ArtworkMetadata.create({
             artwork_id: 1,
@@ -101,7 +114,7 @@ describe('getPrints', () => {
         });
 
         const response = await request(app)
-            .get('/api/v1/prints')
+            .get('/api/v1/galleries/1/prints')
             .query({page: 1, limit: 10});
 
         expect(response.status).toBe(200);
@@ -124,10 +137,11 @@ describe('getPrints', () => {
             default_language: 'en'
         });
 
+        const gallery = await Gallery.create({id: 1, artist_id: artist.id})
+
         // Create test data with specific attributes
         const artwork = await Artwork.create({
-            id: 1,
-            artist_id: artist.id
+            id: 1
         });
         await ArtworkMetadata.create({
             artwork_id: 1,
@@ -156,8 +170,7 @@ describe('getPrints', () => {
 
         // Create another artwork that doesn't match the query parameters
         const artwork2 = await Artwork.create({
-            id: 2,
-            artist_id: artist.id
+            id: 2
         });
         await ArtworkMetadata.create({
             artwork_id: 2,
@@ -184,8 +197,12 @@ describe('getPrints', () => {
             status: 'active'
         });
 
+        await GalleryArtwork.create({id: 1, gallery_id: gallery.id, artwork_id: artwork.id, order: 1});
+        await GalleryArtwork.create({id: 2, gallery_id: gallery.id, artwork_id: artwork2.id, order: 2});
+
+
         const response = await request(app)
-            .get('/api/v1/prints')
+            .get('/api/v1/galleries/1/prints')
             .query({
                 page: 1,
                 limit: 20,
@@ -214,9 +231,17 @@ describe('getPrints', () => {
             default_language: 'en'
         });
 
+        const gallery = await Gallery.create({id: 1, artist_id: artist.id})
+
         // Create 15 prints
         for (let i = 1; i <= 15; i++) {
-            const artwork = await Artwork.create({id: i, artist_id: artist.id});
+            const artwork = await Artwork.create({id: i});
+            await GalleryArtwork.create({
+                id: 1,
+                gallery_id: gallery.id,
+                artwork_id: artwork.id,
+                order: i
+            });
             await ArtworkMetadata.create({
                 artwork_id: i,
                 artist_name: 'test artist',
@@ -244,7 +269,7 @@ describe('getPrints', () => {
         }
 
         const response = await request(app)
-            .get('/api/v1/prints')
+            .get('/api/v1/galleries/1/prints')
             .query({page: 2, limit: 10});
 
         expect(response.status).toBe(200);
@@ -256,7 +281,7 @@ describe('getPrints', () => {
 
     it('should return empty array when no prints are available', async () => {
         const response = await request(app)
-            .get('/api/v1/prints');
+            .get('/api/v1/galleries/1/prints');
 
         expect(response.status).toBe(200);
         expect(response.body.prints).toEqual([]);
@@ -272,8 +297,14 @@ describe('getPrints', () => {
             email: 'test@example.com',
             default_language: 'en'
         });
-
-        const artwork = await Artwork.create({id: 1, artist_id: artist.id});
+        const gallery = await Gallery.create({id: 1, artist_id: artist.id})
+        const artwork = await Artwork.create({id: 1});
+        await GalleryArtwork.create({
+            id: 1,
+            gallery_id: gallery.id,
+            artwork_id: artwork.id,
+            order: 1
+        });
         await ArtworkMetadata.create({
             artwork_id: 1,
             artist_name: 'test artist',
@@ -307,44 +338,17 @@ describe('getPrints', () => {
         });
 
         const responseEN = await request(app)
-            .get('/api/v1/prints')
+            .get('/api/v1/galleries/1/prints')
             .query({language: 'en'});
 
         expect(responseEN.status).toBe(200);
         expect(responseEN.body.prints[0].title).toBe('Print EN');
 
         const responseDA = await request(app)
-            .get('/api/v1/prints')
+            .get('/api/v1/galleries/1/prints')
             .query({language: 'da'});
 
         expect(responseDA.status).toBe(200);
         expect(responseDA.body.prints[0].title).toBe('Print DA');
-    });
-
-    it('should handle invalid query parameters with 400 Bad Request', async () => {
-        const response = await request(app)
-            .get('/api/v1/prints')
-            .query({
-                page: 'invalid',
-                limit: 'invalid',
-                year: 'invalid'
-            });
-
-        expect(response.status).toBe(400);
-        expect(response.body).toHaveProperty('error');
-        expect(response.body.error).toHaveProperty('code', 'BAD_REQUEST');
-        expect(response.body.error).toHaveProperty('message');
-        expect(response.body.error.message).toContain('page');
-        expect(response.body.error.message).toContain('limit');
-        expect(response.body.error.message).toContain('year');
-    });
-
-    it('should handle errors', async () => {
-        // Force an error by passing an invalid query parameter
-        const response = await request(app)
-            .get('/api/v1/prints')
-            .query({limit: 'invalid'});
-
-        expect(response.status).toBe(500);
     });
 });

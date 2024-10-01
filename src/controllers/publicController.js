@@ -148,7 +148,6 @@ exports.getPrints = async (req, res, next) => {
     const offset = (pageNum - 1) * limitNum;
 
     // Build the where clause based on the query parameters
-    const whereClause = {gallery_id: galleryId};
     const metadataWhereClause = {};
 
     if (technique) metadataWhereClause.technique = technique;
@@ -157,8 +156,11 @@ exports.getPrints = async (req, res, next) => {
     if (paperType) metadataWhereClause.paper_type = paperType;
 
     const { count, rows } = await Artwork.findAndCountAll({
-      where: whereClause,
       include: [
+        {
+          model: Gallery,
+          where: {id: galleryId},
+        },
         {
           model: ArtworkMetadata,
           where: metadataWhereClause,
