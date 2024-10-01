@@ -10,7 +10,6 @@ exports.getArtistGalleries = async (req, res, next) => {
         const offset = (page - 1) * limit;
 
         const { count, rows } = await Gallery.findAndCountAll({
-            where: { artist_id: req.artist.id },
             include: [
                 {
                     model: Artwork,
@@ -55,6 +54,7 @@ exports.getArtistGalleries = async (req, res, next) => {
             totalPages: Math.ceil(count.length / limit)
         });
     } catch (error) {
+        console.error('Error in artist getGalleries:', error);
         next(error);
     }
 };
