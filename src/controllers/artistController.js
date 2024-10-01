@@ -1,4 +1,6 @@
-const { Gallery, Artwork, ArtworkMetadata, Image, GalleryArtwork, Translation } = require('../models');
+// src/controllers/artistController.js
+
+const { Gallery, Artwork, Translation } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 
@@ -8,24 +10,27 @@ exports.getArtistGalleries = async (req, res, next) => {
         const offset = (page - 1) * limit;
 
         const { count, rows } = await Gallery.findAndCountAll({
-            where: { artist_id: req.artist.id },  // Filter by the authenticated artist's ID
+            where: { artist_id: req.artist.id },
             include: [
                 {
                     model: Artwork,
                     attributes: [],
                     through: { attributes: [] }
+                },
+                {
+                    model: Translation,
+                    attributes: ['field_name', 'translated_content'],
+                    required: false
                 }
             ],
             attributes: [
                 'id',
-                'title',
-                'description',
                 'status',
                 'created_at',
                 'updated_at',
                 [sequelize.fn('COUNT', sequelize.col('Artworks.id')), 'printCount']
             ],
-            group: ['Gallery.id'],
+            group: ['Gallery.id', 'Translations.id'],
             limit: Number(limit),
             offset: Number(offset),
             order: [['updated_at', 'DESC']],
@@ -35,8 +40,8 @@ exports.getArtistGalleries = async (req, res, next) => {
 
         const galleries = rows.map(gallery => ({
             id: gallery.id,
-            title: gallery.title,
-            description: gallery.description,
+            title: gallery.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
+            description: gallery.Translations.find(t => t.field_name === 'description')?.translated_content || '',
             status: gallery.status,
             printCount: Number(gallery.getDataValue('printCount')),
             createdAt: gallery.created_at,
@@ -53,5 +58,3 @@ exports.getArtistGalleries = async (req, res, next) => {
         next(error);
     }
 };
-
-// Implement other endpoints...
