@@ -3,13 +3,9 @@
 const request = require('supertest');
 const express = require('express');
 
-// Use the manual mock for the database configuration
 jest.mock('../../src/config/database');
-
-// Import the mocked sequelize instance
 const sequelize = require('../../src/config/database');
 
-// Import models after mocking the database
 const {
     Artist,
     Gallery,
@@ -18,7 +14,6 @@ const {
     Translation
 } = require('../../src/models/index');
 
-// Import the controller
 const artistController = require('../../src/controllers/artistController');
 
 const app = express();
@@ -40,17 +35,17 @@ describe('getArtistGalleries', () => {
         await Translation.destroy({where: {}});
 
         testArtist = await Artist.create({
+            id: 1,
             keycloak_id: 'test-keycloak-id',
             username: 'testartist',
             email: 'test@example.com',
             default_language: 'en'
         });
 
-        // Mock authenticated artist
-        app.use((req, res, next) => {
-            req.artist = testArtist;
-            next();
-        });
+        // app.use((req, res, next) => {
+        //     req.artist = testArtist;
+        //     next();
+        // });
     });
 
     afterAll(async () => {
@@ -58,18 +53,19 @@ describe('getArtistGalleries', () => {
     });
 
     it('should return galleries with correct pagination', async () => {
-        // Create test data
         const gallery1 = await Gallery.create({
+            id: 1,
             artist_id: testArtist.id,
             status: 'published'
         });
         const gallery2 = await Gallery.create({
+            id: 2,
             artist_id: testArtist.id,
-            status: 'draft'
+            status: 'draft',
         });
 
-        const artwork1 = await Artwork.create();
-        const artwork2 = await Artwork.create();
+        const artwork1 = await Artwork.create({id: 1});
+        const artwork2 = await Artwork.create({id: 2});
 
         await GalleryArtwork.create({gallery_id: gallery1.id, artwork_id: artwork1.id, order: 1});
         await GalleryArtwork.create({gallery_id: gallery1.id, artwork_id: artwork2.id, order: 2});
@@ -125,11 +121,13 @@ describe('getArtistGalleries', () => {
     });
 
     it('should handle pagination correctly', async () => {
-        // Create 15 galleries
         for (let i = 1; i <= 15; i++) {
             const gallery = await Gallery.create({
                 artist_id: testArtist.id,
-                status: i % 2 === 0 ? 'published' : 'draft'
+                status: i % 2 === 0 ? 'published' : 'draft',
+                created_at: new Date(`2023-01-${i < 10 ? '0' + i : i}`),
+                updated_at: new Date(`2023-01-${i < 10 ? '0' + i : i}`),
+                last_indexed: new Date(`2023-01-${i < 10 ? '0' + i : i}`)
             });
             await Translation.create({
                 entity_id: gallery.id,
@@ -165,7 +163,10 @@ describe('getArtistGalleries', () => {
     it('should handle language parameter correctly', async () => {
         const gallery = await Gallery.create({
             artist_id: testArtist.id,
-            status: 'published'
+            status: 'published',
+            created_at: new Date('2023-01-01'),
+            updated_at: new Date('2023-01-02'),
+            last_indexed: new Date('2023-01-02')
         });
 
         await Translation.create({
