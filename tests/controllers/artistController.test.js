@@ -16,6 +16,11 @@ const artistController = require('../../src/controllers/artistController');
 
 const app = express();
 app.use(express.json());
+// Middleware to inject keycloak_id
+app.use((req, res, next) => {
+    req.keycloak_id = 'test-keycloak-id';
+    next();
+});
 app.get('/api/v1/artist/galleries', artistController.getArtistGalleries);
 
 describe('getArtistGalleries', () => {
@@ -37,12 +42,6 @@ describe('getArtistGalleries', () => {
             username: 'testartist',
             email: 'test@example.com',
             default_language: 'en'
-        });
-
-        // Mock authenticated artist
-        app.use((req, res, next) => {
-            req.artist = testArtist;
-            next();
         });
     });
 

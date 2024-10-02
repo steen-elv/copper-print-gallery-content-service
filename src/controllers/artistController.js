@@ -1,4 +1,4 @@
-const { Gallery, Artwork, Translation } = require('../models');
+const { Gallery, Artwork, Translation, Artist } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 
@@ -7,9 +7,13 @@ exports.getArtistGalleries = async (req, res, next) => {
         const { page = 1, limit = 20 } = req.query;
         const offset = (page - 1) * limit;
 
-        console.log(JSON.stringify(req.artist));
+        const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
+        if (!artist) {
+            return res.status(404).json({ error: 'Artist not found' });
+        }
+
         const { count, rows } = await Gallery.findAndCountAll({
-            where: { artist_id: req.artist.id },  // Filter by the authenticated artist's ID
+            where: { artist_id: artist.id },
             include: [
                 {
                     model: Artwork,
@@ -50,7 +54,7 @@ exports.getArtistGalleries = async (req, res, next) => {
         }));
 
         const totalCount = await Gallery.count({
-            where: { artist_id: req.artist.id },
+            where: { artist_id: artist.id },
             distinct: true,
             include: [{ model: Artwork, attributes: [] }]
         });
