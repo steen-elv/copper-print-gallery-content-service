@@ -72,19 +72,20 @@ exports.getArtistGalleries = async (req, res, next) => {
 };
 
 exports.createGallery = async (req, res, next) => {
+    const { title, description, status = 'draft' } = req.body;
+    const language = req.query.language || 'en';
+
+    if (!title) {
+        return res.status(400).json({ error: 'Title is required' });
+    }
+
     let transaction;
     try {
         transaction = await sequelize.transaction();
 
-        const { title, description, status = 'draft' } = req.body;
-        const language = req.query.language || 'en';
-
-        if (!title) {
-            return res.status(400).json({ error: 'Title is required' });
-        }
-
         const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
         if (!artist) {
+            await transaction.rollback();
             return res.status(404).json({ error: 'Artist not found' });
         }
 
@@ -131,8 +132,8 @@ exports.createGallery = async (req, res, next) => {
             updatedAt: createdGallery.updated_at
         });
     } catch (error) {
+        console.log('Error in createGallery', error);
         if (transaction) await transaction.rollback();
-        console.error(error);
         next(error);
     }
 };

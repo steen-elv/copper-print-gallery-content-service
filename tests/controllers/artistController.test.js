@@ -33,6 +33,7 @@ describe('Artist Controller', () => {
     });
 
     beforeEach(async () => {
+
         await Artist.destroy({where: {}});
         await Gallery.destroy({where: {}});
         await Artwork.destroy({where: {}});
