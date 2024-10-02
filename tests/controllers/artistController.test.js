@@ -27,30 +27,33 @@ app.post('/api/v1/artist/galleries', artistController.createGallery);
 describe('Artist Controller', () => {
     let testArtist;
     let validToken;
+    let transaction;
 
     beforeAll(async () => {
         await sequelize.sync({force: true});
     });
 
     beforeEach(async () => {
-        await Artist.destroy({where: {}});
-        await Gallery.destroy({where: {}});
-        await Artwork.destroy({where: {}});
-        await GalleryArtwork.destroy({where: {}});
-        await Translation.destroy({where: {}});
+        transaction = await sequelize.transaction();
+
+        await Artist.destroy({where: {}}, {transaction});
+        await Gallery.destroy({where: {}}, {transaction});
+        await Artwork.destroy({where: {}}, {transaction});
+        await GalleryArtwork.destroy({where: {}}, {transaction});
+        await Translation.destroy({where: {}}, {transaction});
 
         testArtist = await Artist.create({
             keycloak_id: 'test-keycloak-id',
             username: 'testartist',
             email: 'test@example.com',
             default_language: 'en'
-        });
+        }, {transaction});
 
-        validToken = jwt.sign({sub: 'test-keycloak-id'}, 'any-secret-will-do');
+        validToken = jwt.sign({ sub: 'test-keycloak-id' }, 'any-secret-will-do');
     });
 
     afterEach(async () => {
-        await sequelize.transaction.rollback();
+        await transaction.rollback();
     });
 
     afterAll(async () => {
