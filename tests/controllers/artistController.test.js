@@ -179,4 +179,106 @@ describe('getArtistGalleries', () => {
         expect(response.status).toBe(400);
         expect(response.body).toEqual({ error: 'Invalid token format' });
     });
+
+    it('should return galleries with correct translations for different languages', async () => {
+        // Create galleries with translations
+        const gallery1 = await Gallery.create({
+            artist_id: testArtist.id,
+            status: 'published'
+        });
+        const gallery2 = await Gallery.create({
+            artist_id: testArtist.id,
+            status: 'draft'
+        });
+
+        // English translations
+        await Translation.create({
+            entity_id: gallery1.id,
+            entity_type: 'Gallery',
+            field_name: 'title',
+            translated_content: 'Summer Exhibition',
+            language_code: 'en'
+        });
+        await Translation.create({
+            entity_id: gallery1.id,
+            entity_type: 'Gallery',
+            field_name: 'description',
+            translated_content: 'A collection of summer-themed prints',
+            language_code: 'en'
+        });
+        await Translation.create({
+            entity_id: gallery2.id,
+            entity_type: 'Gallery',
+            field_name: 'title',
+            translated_content: 'Winter Collection',
+            language_code: 'en'
+        });
+
+        // Danish translations
+        await Translation.create({
+            entity_id: gallery1.id,
+            entity_type: 'Gallery',
+            field_name: 'title',
+            translated_content: 'Sommerudstilling',
+            language_code: 'da'
+        });
+        await Translation.create({
+            entity_id: gallery1.id,
+            entity_type: 'Gallery',
+            field_name: 'description',
+            translated_content: 'En samling af sommertemaede tryk',
+            language_code: 'da'
+        });
+        await Translation.create({
+            entity_id: gallery2.id,
+            entity_type: 'Gallery',
+            field_name: 'title',
+            translated_content: 'Vinterkollektion',
+            language_code: 'da'
+        });
+
+        // Test English translations
+        const responseEN = await request(app)
+            .get('/api/v1/artist/galleries')
+            .set('Authorization', `Bearer ${validToken}`)
+            .query({ language: 'en' });
+
+        expect(responseEN.status).toBe(200);
+        expect(responseEN.body.galleries).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                id: gallery1.id,
+                title: 'Summer Exhibition',
+                description: 'A collection of summer-themed prints',
+                status: 'published'
+            }),
+            expect.objectContaining({
+                id: gallery2.id,
+                title: 'Winter Collection',
+                description: '',
+                status: 'draft'
+            })
+        ]));
+
+        // Test Danish translations
+        const responseDA = await request(app)
+            .get('/api/v1/artist/galleries')
+            .set('Authorization', `Bearer ${validToken}`)
+            .query({ language: 'da' });
+
+        expect(responseDA.status).toBe(200);
+        expect(responseDA.body.galleries).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                id: gallery1.id,
+                title: 'Sommerudstilling',
+                description: 'En samling af sommertemaede tryk',
+                status: 'published'
+            }),
+            expect.objectContaining({
+                id: gallery2.id,
+                title: 'Vinterkollektion',
+                description: '',
+                status: 'draft'
+            })
+        ]));
+    });
 });

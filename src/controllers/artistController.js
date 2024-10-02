@@ -4,7 +4,7 @@ const sequelize = require('../config/database');
 
 exports.getArtistGalleries = async (req, res, next) => {
     try {
-        const { page = 1, limit = 20 } = req.query;
+        const { page = 1, limit = 20, language = 'en' } = req.query;
         const offset = (page - 1) * limit;
 
         const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
@@ -23,6 +23,7 @@ exports.getArtistGalleries = async (req, res, next) => {
                 {
                     model: Translation,
                     where: {
+                        language_code: language,
                         field_name: { [Op.in]: ['title', 'description'] }
                     },
                     required: false
@@ -66,7 +67,6 @@ exports.getArtistGalleries = async (req, res, next) => {
             totalPages: Math.ceil(totalCount / limit)
         });
     } catch (error) {
-        console.error('Error in getGalleries:', error);
         next(error);
     }
 };
