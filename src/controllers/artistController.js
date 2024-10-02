@@ -70,3 +70,69 @@ exports.getArtistGalleries = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.createGallery = async (req, res, next) => {
+    let transaction;
+    try {
+        transaction = await sequelize.transaction();
+
+        const { title, description, status = 'draft' } = req.body;
+        const language = req.query.language || 'en';
+
+        if (!title) {
+            return res.status(400).json({ error: 'Title is required' });
+        }
+
+        const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
+        if (!artist) {
+            return res.status(404).json({ error: 'Artist not found' });
+        }
+
+        const gallery = await Gallery.create({
+            artist_id: artist.id,
+            status: status
+        }, { transaction });
+
+        await Translation.create({
+            entity_id: gallery.id,
+            entity_type: 'Gallery',
+            field_name: 'title',
+            translated_content: title,
+            language_code: language
+        }, { transaction });
+
+        if (description) {
+            await Translation.create({
+                entity_id: gallery.id,
+                entity_type: 'Gallery',
+                field_name: 'description',
+                translated_content: description,
+                language_code: language
+            }, { transaction });
+        }
+
+        await transaction.commit();
+
+        const createdGallery = await Gallery.findOne({
+            where: { id: gallery.id },
+            include: [{
+                model: Translation,
+                where: { language_code: language },
+                required: false
+            }]
+        });
+
+        res.status(201).json({
+            id: createdGallery.id,
+            title: createdGallery.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
+            description: createdGallery.Translations.find(t => t.field_name === 'description')?.translated_content || '',
+            status: createdGallery.status,
+            createdAt: createdGallery.created_at,
+            updatedAt: createdGallery.updated_at
+        });
+    } catch (error) {
+        if (transaction) await transaction.rollback();
+        console.error(error);
+        next(error);
+    }
+};
