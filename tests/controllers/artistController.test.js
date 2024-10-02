@@ -1,5 +1,3 @@
-// tests/controllers/artistController.test.js
-
 const request = require('supertest');
 const express = require('express');
 
@@ -7,6 +5,7 @@ jest.mock('../../src/config/database');
 const sequelize = require('../../src/config/database');
 
 const {
+    Artist,
     Gallery,
     GalleryArtwork,
     Artwork,
@@ -20,15 +19,31 @@ app.use(express.json());
 app.get('/api/v1/artist/galleries', artistController.getArtistGalleries);
 
 describe('getArtistGalleries', () => {
+    let testArtist;
+
     beforeAll(async () => {
         await sequelize.sync({force: true});
     });
 
     beforeEach(async () => {
+        await Artist.destroy({where: {}});
         await Gallery.destroy({where: {}});
         await Artwork.destroy({where: {}});
         await GalleryArtwork.destroy({where: {}});
         await Translation.destroy({where: {}});
+
+        testArtist = await Artist.create({
+            keycloak_id: 'test-keycloak-id',
+            username: 'testartist',
+            email: 'test@example.com',
+            default_language: 'en'
+        });
+
+        // Mock authenticated artist
+        app.use((req, res, next) => {
+            req.artist = testArtist;
+            next();
+        });
     });
 
     afterAll(async () => {
@@ -37,9 +52,11 @@ describe('getArtistGalleries', () => {
 
     it('should return galleries with correct pagination', async () => {
         const gallery1 = await Gallery.create({
+            artist_id: testArtist.id,
             status: 'published'
         });
         const gallery2 = await Gallery.create({
+            artist_id: testArtist.id,
             status: 'draft'
         });
 
@@ -106,6 +123,7 @@ describe('getArtistGalleries', () => {
     it('should handle pagination correctly', async () => {
         for (let i = 1; i <= 15; i++) {
             const gallery = await Gallery.create({
+                artist_id: testArtist.id,
                 status: i % 2 === 0 ? 'published' : 'draft'
             });
             await Translation.create({
@@ -128,7 +146,7 @@ describe('getArtistGalleries', () => {
         expect(response.body.totalPages).toBe(2);
     });
 
-    it('should return empty array when there are no galleries', async () => {
+    it('should return empty array when artist has no galleries', async () => {
         const response = await request(app)
             .get('/api/v1/artist/galleries');
 
