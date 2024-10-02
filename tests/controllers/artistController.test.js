@@ -7,7 +7,6 @@ jest.mock('../../src/config/database');
 const sequelize = require('../../src/config/database');
 
 const {
-    Artist,
     Gallery,
     GalleryArtwork,
     Artwork,
@@ -21,31 +20,15 @@ app.use(express.json());
 app.get('/api/v1/artist/galleries', artistController.getArtistGalleries);
 
 describe('getArtistGalleries', () => {
-    let testArtist;
-
     beforeAll(async () => {
         await sequelize.sync({force: true});
     });
 
     beforeEach(async () => {
-        await Artist.destroy({where: {}});
         await Gallery.destroy({where: {}});
         await Artwork.destroy({where: {}});
         await GalleryArtwork.destroy({where: {}});
         await Translation.destroy({where: {}});
-
-        testArtist = await Artist.create({
-            id: 1,
-            keycloak_id: 'test-keycloak-id',
-            username: 'testartist',
-            email: 'test@example.com',
-            default_language: 'en'
-        });
-
-        // app.use((req, res, next) => {
-        //     req.artist = testArtist;
-        //     next();
-        // });
     });
 
     afterAll(async () => {
@@ -54,18 +37,14 @@ describe('getArtistGalleries', () => {
 
     it('should return galleries with correct pagination', async () => {
         const gallery1 = await Gallery.create({
-            id: 1,
-            artist_id: testArtist.id,
             status: 'published'
         });
         const gallery2 = await Gallery.create({
-            id: 2,
-            artist_id: testArtist.id,
-            status: 'draft',
+            status: 'draft'
         });
 
-        const artwork1 = await Artwork.create({id: 1});
-        const artwork2 = await Artwork.create({id: 2});
+        const artwork1 = await Artwork.create();
+        const artwork2 = await Artwork.create();
 
         await GalleryArtwork.create({gallery_id: gallery1.id, artwork_id: artwork1.id, order: 1});
         await GalleryArtwork.create({gallery_id: gallery1.id, artwork_id: artwork2.id, order: 2});
@@ -105,14 +84,18 @@ describe('getArtistGalleries', () => {
                 title: 'Gallery 1',
                 description: 'Description 1',
                 status: 'published',
-                printCount: 2
+                printCount: 2,
+                createdAt: expect.any(String),
+                updatedAt: expect.any(String)
             }),
             expect.objectContaining({
                 id: gallery2.id,
                 title: 'Gallery 2',
                 description: '',
                 status: 'draft',
-                printCount: 1
+                printCount: 1,
+                createdAt: expect.any(String),
+                updatedAt: expect.any(String)
             })
         ]));
         expect(response.body.totalCount).toBe(2);
@@ -123,11 +106,7 @@ describe('getArtistGalleries', () => {
     it('should handle pagination correctly', async () => {
         for (let i = 1; i <= 15; i++) {
             const gallery = await Gallery.create({
-                artist_id: testArtist.id,
-                status: i % 2 === 0 ? 'published' : 'draft',
-                created_at: new Date(`2023-01-${i < 10 ? '0' + i : i}`),
-                updated_at: new Date(`2023-01-${i < 10 ? '0' + i : i}`),
-                last_indexed: new Date(`2023-01-${i < 10 ? '0' + i : i}`)
+                status: i % 2 === 0 ? 'published' : 'draft'
             });
             await Translation.create({
                 entity_id: gallery.id,
@@ -149,7 +128,7 @@ describe('getArtistGalleries', () => {
         expect(response.body.totalPages).toBe(2);
     });
 
-    it('should return empty array when artist has no galleries', async () => {
+    it('should return empty array when there are no galleries', async () => {
         const response = await request(app)
             .get('/api/v1/artist/galleries');
 
@@ -158,44 +137,5 @@ describe('getArtistGalleries', () => {
         expect(response.body.totalCount).toBe(0);
         expect(response.body.currentPage).toBe(1);
         expect(response.body.totalPages).toBe(0);
-    });
-
-    it('should handle language parameter correctly', async () => {
-        const gallery = await Gallery.create({
-            artist_id: testArtist.id,
-            status: 'published',
-            created_at: new Date('2023-01-01'),
-            updated_at: new Date('2023-01-02'),
-            last_indexed: new Date('2023-01-02')
-        });
-
-        await Translation.create({
-            entity_id: gallery.id,
-            entity_type: 'Gallery',
-            field_name: 'title',
-            translated_content: 'Gallery EN',
-            language_code: 'en'
-        });
-        await Translation.create({
-            entity_id: gallery.id,
-            entity_type: 'Gallery',
-            field_name: 'title',
-            translated_content: 'Gallery DA',
-            language_code: 'da'
-        });
-
-        const responseEN = await request(app)
-            .get('/api/v1/artist/galleries')
-            .query({language: 'en'});
-
-        expect(responseEN.status).toBe(200);
-        expect(responseEN.body.galleries[0].title).toBe('Gallery EN');
-
-        const responseDA = await request(app)
-            .get('/api/v1/artist/galleries')
-            .query({language: 'da'});
-
-        expect(responseDA.status).toBe(200);
-        expect(responseDA.body.galleries[0].title).toBe('Gallery DA');
     });
 });

@@ -18,7 +18,9 @@ exports.getArtistGalleries = async (req, res, next) => {
                 },
                 {
                     model: Translation,
-                    attributes: ['field_name', 'translated_content'],
+                    where: {
+                        field_name: { [Op.in]: ['title', 'description'] }
+                    },
                     required: false
                 }
             ],
@@ -54,7 +56,6 @@ exports.getArtistGalleries = async (req, res, next) => {
             totalPages: Math.ceil(count.length / limit)
         });
     } catch (error) {
-        console.error('Error in artist getGalleries:', error);
         next(error);
     }
 };
