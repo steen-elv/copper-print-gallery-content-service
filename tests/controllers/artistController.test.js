@@ -1,5 +1,8 @@
 const request = require('supertest');
 const express = require('express');
+const extractJwtInfo = require('../../src/middleware/jwtMiddleware');
+const jwt = require('jsonwebtoken');
+
 
 jest.mock('../../src/config/database');
 const sequelize = require('../../src/config/database');
@@ -17,14 +20,12 @@ const artistController = require('../../src/controllers/artistController');
 const app = express();
 app.use(express.json());
 // Middleware to inject keycloak_id
-app.use((req, res, next) => {
-    req.keycloak_id = 'test-keycloak-id';
-    next();
-});
+app.use(extractJwtInfo);
 app.get('/api/v1/artist/galleries', artistController.getArtistGalleries);
 
 describe('getArtistGalleries', () => {
     let testArtist;
+    let validToken;
 
     beforeAll(async () => {
         await sequelize.sync({force: true});
@@ -43,6 +44,9 @@ describe('getArtistGalleries', () => {
             email: 'test@example.com',
             default_language: 'en'
         });
+
+        validToken = jwt.sign({ sub: 'test-keycloak-id' }, 'any-secret-will-do');
+
     });
 
     afterAll(async () => {
@@ -90,6 +94,7 @@ describe('getArtistGalleries', () => {
 
         const response = await request(app)
             .get('/api/v1/artist/galleries')
+            .set('Authorization', `Bearer ${validToken}`)
             .query({page: 1, limit: 10});
 
         expect(response.status).toBe(200);
@@ -136,6 +141,7 @@ describe('getArtistGalleries', () => {
 
         const response = await request(app)
             .get('/api/v1/artist/galleries')
+            .set('Authorization', `Bearer ${validToken}`)
             .query({page: 2, limit: 10});
 
         expect(response.status).toBe(200);
@@ -147,12 +153,30 @@ describe('getArtistGalleries', () => {
 
     it('should return empty array when artist has no galleries', async () => {
         const response = await request(app)
-            .get('/api/v1/artist/galleries');
+            .get('/api/v1/artist/galleries')
+            .set('Authorization', `Bearer ${validToken}`);
 
         expect(response.status).toBe(200);
         expect(response.body.galleries).toEqual([]);
         expect(response.body.totalCount).toBe(0);
         expect(response.body.currentPage).toBe(1);
         expect(response.body.totalPages).toBe(0);
+    });
+
+    it('should return 401 if no token is provided', async () => {
+        const response = await request(app)
+            .get('/api/v1/artist/galleries');
+
+        expect(response.status).toBe(401);
+        expect(response.body).toEqual({ error: 'Authorization header missing' });
+    });
+
+    it('should return 400 if an invalid token format is provided', async () => {
+        const response = await request(app)
+            .get('/api/v1/artist/galleries')
+            .set('Authorization', 'Bearer invalid-token-format');
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'Invalid token format' });
     });
 });

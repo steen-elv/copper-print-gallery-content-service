@@ -4,11 +4,15 @@ const express = require('express');
 const path = require('path');
 const OpenApiValidator = require('express-openapi-validator');
 const { errorHandler } = require('./middleware/errorMiddleware');
+const extractJwtInfo = require('./middleware/jwtMiddleware');
+
 
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+// Apply the JWT middleware to all routes
+app.use(extractJwtInfo);
 
 const apiSpecs = [
     path.join(__dirname, '../api/content-management-public-api-specification.yaml'),
