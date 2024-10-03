@@ -286,11 +286,14 @@ exports.getGalleryPrints = async (req, res, next) => {
             return res.status(404).json({ error: 'Gallery not found' });
         }
 
-        const { count, rows } = await GalleryArtwork.findAndCountAll({
-            where: { gallery_id: galleryId },
+        const { count, rows } = await Gallery.findAndCountAll({
+            where: { id: galleryId },
             include: [
                 {
                     model: Artwork,
+                    through: {
+                        attributes: ['order']
+                    },
                     include: [
                         {
                             model: Translation,
@@ -303,16 +306,16 @@ exports.getGalleryPrints = async (req, res, next) => {
                     ]
                 }
             ],
-            order: [['order', 'ASC']],
             limit: Number(limit),
-            offset: Number(offset)
+            offset: Number(offset),
+            order: [[Artwork, GalleryArtwork, 'order', 'ASC']]
         });
 
-        const prints = rows.map(ga => ({
-            printId: ga.Artwork.id,
-            title: ga.Artwork.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
-            thumbnailUrl: `https://cdn.copperprintgallery.com/thumbnails/${ga.Artwork.id}.jpg`, // Placeholder URL
-            order: ga.order
+        const prints = rows[0].Artworks.map(artwork => ({
+            printId: artwork.id,
+            title: artwork.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
+            thumbnailUrl: `https://cdn.copperprintgallery.com/thumbnails/${artwork.id}.jpg`, // Placeholder URL
+            order: artwork.GalleryArtwork.order
         }));
 
         res.json({
@@ -322,7 +325,7 @@ exports.getGalleryPrints = async (req, res, next) => {
             totalPages: Math.ceil(count / limit)
         });
     } catch (error) {
-        console.error('Error in getGalleryPrint:', error);
+        console.error('Error in getGalleryPrints:', error);
         next(error);
     }
 };
