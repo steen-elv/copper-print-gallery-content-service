@@ -205,8 +205,6 @@ exports.updateGallery = async (req, res, next) => {
         const { title, description, status } = req.body;
         const language = req.query.language || 'en';
 
-        console.log('Updating gallery:', { galleryId, title, description, status, language });
-
         const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
         if (!artist) {
             await transaction.rollback();
@@ -226,38 +224,42 @@ exports.updateGallery = async (req, res, next) => {
             return res.status(404).json({ error: 'Gallery not found' });
         }
 
-        console.log('Found gallery:', gallery.toJSON());
-
         if (status) {
             gallery.status = status;
             await gallery.save({ transaction });
-            console.log('Updated status:', status);
         }
 
         if (title) {
-            const [titleTranslation, created] = await Translation.upsert({
-                entity_id: gallery.id,
-                entity_type: 'Gallery',
-                field_name: 'title',
-                language_code: language,
-                translated_content: title
-            }, { transaction });
-            console.log('Updated title translation:', titleTranslation.toJSON(), 'Created:', created);
+            await Translation.update(
+                { translated_content: title },
+                {
+                    where: {
+                        entity_id: gallery.id,
+                        entity_type: 'Gallery',
+                        field_name: 'title',
+                        language_code: language
+                    },
+                    transaction
+                }
+            );
         }
 
         if (description) {
-            const [descTranslation, created] = await Translation.upsert({
-                entity_id: gallery.id,
-                entity_type: 'Gallery',
-                field_name: 'description',
-                language_code: language,
-                translated_content: description
-            }, { transaction });
-            console.log('Updated description translation:', descTranslation.toJSON(), 'Created:', created);
+            await Translation.update(
+                { translated_content: description },
+                {
+                    where: {
+                        entity_id: gallery.id,
+                        entity_type: 'Gallery',
+                        field_name: 'description',
+                        language_code: language
+                    },
+                    transaction
+                }
+            );
         }
 
         await transaction.commit();
-        console.log('Transaction committed');
 
         const updatedGallery = await Gallery.findOne({
             where: { id: galleryId },
@@ -267,8 +269,6 @@ exports.updateGallery = async (req, res, next) => {
                 required: false
             }]
         });
-
-        console.log('Updated gallery:', updatedGallery.toJSON());
 
         res.json({
             id: updatedGallery.id,
@@ -280,7 +280,6 @@ exports.updateGallery = async (req, res, next) => {
         });
     } catch (error) {
         await transaction.rollback();
-        console.error('Error in updateGallery:', error);
         next(error);
     }
 };
