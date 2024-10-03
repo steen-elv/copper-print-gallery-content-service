@@ -23,6 +23,8 @@ app.use(express.json());
 app.use(extractJwtInfo);
 app.get('/api/v1/artist/galleries', artistController.getArtistGalleries);
 app.post('/api/v1/artist/galleries', artistController.createGallery);
+app.get('/api/v1/artist/galleries/:galleryId', artistController.getGallery);
+
 
 describe('Artist Controller', () => {
     let testArtist;
@@ -331,6 +333,78 @@ describe('Artist Controller', () => {
 
             expect(response.status).toBe(201);
             expect(response.body.status).toBe('draft');
+        });
+    });
+    describe('getGallery', () => {
+        it('should return gallery details for the authenticated artist', async () => {
+            const gallery = await Gallery.create({
+                artist_id: testArtist.id,
+                status: 'published'
+            });
+
+            await Translation.create({
+                entity_id: gallery.id,
+                entity_type: 'Gallery',
+                field_name: 'title',
+                translated_content: 'Test Gallery',
+                language_code: 'en'
+            });
+
+            await Translation.create({
+                entity_id: gallery.id,
+                entity_type: 'Gallery',
+                field_name: 'description',
+                translated_content: 'This is a test gallery',
+                language_code: 'en'
+            });
+
+            const artwork = await Artwork.create();
+            await GalleryArtwork.create({ gallery_id: gallery.id, artwork_id: artwork.id, order: 1 });
+
+            const response = await request(app)
+                .get(`/api/v1/artist/galleries/${gallery.id}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toMatchObject({
+                id: gallery.id,
+                title: 'Test Gallery',
+                description: 'This is a test gallery',
+                status: 'published',
+                printCount: 1,
+                createdAt: expect.any(String),
+                updatedAt: expect.any(String)
+            });
+        });
+
+        it('should return 404 if gallery is not found', async () => {
+            const response = await request(app)
+                .get('/api/v1/artist/galleries/99999')
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual({ error: 'Gallery not found' });
+        });
+
+        it('should return 404 if gallery belongs to another artist', async () => {
+            const otherArtist = await Artist.create({
+                keycloak_id: 'other-artist-id',
+                username: 'otherartist',
+                email: 'other@example.com',
+                default_language: 'en'
+            });
+
+            const gallery = await Gallery.create({
+                artist_id: otherArtist.id,
+                status: 'published'
+            });
+
+            const response = await request(app)
+                .get(`/api/v1/artist/galleries/${gallery.id}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual({ error: 'Gallery not found' });
         });
     });
 });

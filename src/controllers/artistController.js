@@ -137,3 +137,63 @@ exports.createGallery = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.getGallery = async (req, res, next) => {
+    try {
+        const { galleryId } = req.params;
+        const language = req.query.language || 'en';
+
+        const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
+        if (!artist) {
+            return res.status(404).json({ error: 'Artist not found' });
+        }
+
+        const gallery = await Gallery.findOne({
+            where: {
+                id: galleryId,
+                artist_id: artist.id
+            },
+            include: [
+                {
+                    model: Translation,
+                    where: {
+                        language_code: language,
+                        field_name: { [Op.in]: ['title', 'description'] }
+                    },
+                    required: false
+                },
+                {
+                    model: Artwork,
+                    attributes: [],
+                    through: { attributes: [] }
+                }
+            ],
+            attributes: [
+                'id',
+                'status',
+                'created_at',
+                'updated_at',
+                [sequelize.fn('COUNT', sequelize.col('Artworks.id')), 'printCount']
+            ],
+            group: ['Gallery.id', 'Translations.id']
+        });
+
+        if (!gallery) {
+            return res.status(404).json({ error: 'Gallery not found' });
+        }
+
+        const response = {
+            id: gallery.id,
+            title: gallery.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
+            description: gallery.Translations.find(t => t.field_name === 'description')?.translated_content || '',
+            status: gallery.status,
+            printCount: Number(gallery.get('printCount')),
+            createdAt: gallery.created_at,
+            updatedAt: gallery.updated_at
+        };
+
+        res.json(response);
+    } catch (error) {
+        next(error);
+    }
+};
