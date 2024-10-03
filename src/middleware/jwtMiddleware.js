@@ -2,29 +2,31 @@ const jwt = require('jsonwebtoken');
 const { isAuthRequired } = require('../config/authConfig');
 
 const extractJwtInfo = (req, res, next) => {
-    // Check if the route requires authentication
     if (!isAuthRequired(req.path)) {
-        // If authentication is not required, proceed without checking JWT
         return next();
     }
 
     const authHeader = req.headers.authorization;
-    if (authHeader) {
-        const token = authHeader.split(' ')[1]; // Bearer <token>
+    if (!authHeader) {
+        return res.status(401).json({ error: 'Authorization header missing' });
+    }
 
-        try {
-            const decoded = jwt.decode(token);
-            if (decoded && decoded.sub) {
-                req.keycloak_id = decoded.sub;
-                next();
-            } else {
-                res.status(401).json({ error: 'Invalid token' });
-            }
-        } catch (error) {
-            res.status(401).json({ error: 'Error decoding token' });
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+        return res.status(400).json({ error: 'Invalid token format' });
+    }
+
+    const token = parts[1];
+
+    try {
+        const decoded = jwt.decode(token);
+        if (!decoded || !decoded.sub) {
+            return res.status(400).json({ error: 'Invalid token' });
         }
-    } else {
-        res.status(401).json({ error: 'Authorization header missing' });
+        req.keycloak_id = decoded.sub;
+        next();
+    } catch (error) {
+        res.status(400).json({ error: 'Error decoding token' });
     }
 };
 

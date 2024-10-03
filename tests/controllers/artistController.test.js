@@ -175,15 +175,6 @@ describe('Artist Controller', () => {
             expect(response.body).toEqual({error: 'Authorization header missing'});
         });
 
-        it('should return 400 if an invalid token format is provided', async () => {
-            const response = await request(app)
-                .get('/api/v1/artist/galleries')
-                .set('Authorization', 'Bearer invalid-token-format');
-
-            expect(response.status).toBe(400);
-            expect(response.body).toEqual({error: 'Invalid token format'});
-        });
-
         it('should return galleries with correct translations for different languages', async () => {
             // Create galleries with translations
             const gallery1 = await Gallery.create({
@@ -405,6 +396,33 @@ describe('Artist Controller', () => {
 
             expect(response.status).toBe(404);
             expect(response.body).toEqual({ error: 'Gallery not found' });
+        });
+    });
+    describe('Authentication', () => {
+        it('should return 400 if an invalid token format is provided', async () => {
+            const response = await request(app)
+                .get('/api/v1/artist/galleries')
+                .set('Authorization', 'InvalidToken');
+
+            expect(response.status).toBe(400);
+            expect(response.body).toEqual({ error: 'Invalid token format' });
+        });
+
+        it('should return 400 if the token is invalid', async () => {
+            const response = await request(app)
+                .get('/api/v1/artist/galleries')
+                .set('Authorization', 'Bearer invalidtoken');
+
+            expect(response.status).toBe(400);
+            expect(response.body).toEqual({ error: 'Invalid token' });
+        });
+
+        it('should return 401 if no token is provided', async () => {
+            const response = await request(app)
+                .get('/api/v1/artist/galleries');
+
+            expect(response.status).toBe(401);
+            expect(response.body).toEqual({ error: 'Authorization header missing' });
         });
     });
 });
