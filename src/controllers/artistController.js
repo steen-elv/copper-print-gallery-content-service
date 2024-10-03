@@ -1,4 +1,4 @@
-const { Gallery, Artwork, Translation, Artist } = require('../models');
+const { Gallery, Artwork, GalleryArtwork, Translation, Artist } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 
@@ -260,6 +260,69 @@ exports.updateGallery = async (req, res, next) => {
         });
     } catch (error) {
         await transaction.rollback();
+        next(error);
+    }
+};
+
+exports.getGalleryPrints = async (req, res, next) => {
+    try {
+        const { galleryId } = req.params;
+        const { page = 1, limit = 20, language = 'en' } = req.query;
+        const offset = (page - 1) * limit;
+
+        const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
+        if (!artist) {
+            return res.status(404).json({ error: 'Artist not found' });
+        }
+
+        const gallery = await Gallery.findOne({
+            where: {
+                id: galleryId,
+                artist_id: artist.id
+            }
+        });
+
+        if (!gallery) {
+            return res.status(404).json({ error: 'Gallery not found' });
+        }
+
+        const { count, rows } = await GalleryArtwork.findAndCountAll({
+            where: { gallery_id: galleryId },
+            include: [
+                {
+                    model: Artwork,
+                    include: [
+                        {
+                            model: Translation,
+                            where: {
+                                language_code: language,
+                                field_name: { [Op.in]: ['title', 'description'] }
+                            },
+                            required: false
+                        }
+                    ]
+                }
+            ],
+            order: [['order', 'ASC']],
+            limit: Number(limit),
+            offset: Number(offset)
+        });
+
+        const prints = rows.map(ga => ({
+            printId: ga.Artwork.id,
+            title: ga.Artwork.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
+            thumbnailUrl: `https://cdn.copperprintgallery.com/thumbnails/${ga.Artwork.id}.jpg`, // Placeholder URL
+            order: ga.order
+        }));
+
+        res.json({
+            prints: prints,
+            totalCount: count,
+            currentPage: Number(page),
+            totalPages: Math.ceil(count / limit)
+        });
+    } catch (error) {
+        console.error('Error in getGalleryPrint:', error);
         next(error);
     }
 };

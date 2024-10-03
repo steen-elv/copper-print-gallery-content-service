@@ -25,6 +25,7 @@ app.get('/api/v1/artist/galleries', artistController.getArtistGalleries);
 app.post('/api/v1/artist/galleries', artistController.createGallery);
 app.get('/api/v1/artist/galleries/:galleryId', artistController.getGallery);
 app.put('/api/v1/artist/galleries/:galleryId', artistController.updateGallery);
+app.get('/api/v1/artist/galleries/:galleryId/prints', artistController.getGalleryPrints);
 
 
 describe('Artist Controller', () => {
@@ -604,6 +605,98 @@ describe('Artist Controller', () => {
 
             expect(englishResponse.body.title).toBe('Original Title');
             expect(englishResponse.body.description).toBe('Original Description');
+        });
+    });
+
+    describe('getGalleryPrints', () => {
+        let testGallery;
+        let testArtworks;
+
+        beforeEach(async () => {
+            testGallery = await Gallery.create({
+                artist_id: testArtist.id,
+                status: 'published'
+            });
+
+            testArtworks = await Promise.all([
+                Artwork.create(),
+                Artwork.create(),
+                Artwork.create()
+            ]);
+
+            await Promise.all([
+                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[0].id, order: 2 }),
+                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[1].id, order: 1 }),
+                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[2].id, order: 3 })
+            ]);
+
+            await Promise.all(testArtworks.map((artwork, index) =>
+                Translation.create({
+                    entity_id: artwork.id,
+                    entity_type: 'Artwork',
+                    field_name: 'title',
+                    translated_content: `Artwork ${index + 1}`,
+                    language_code: 'en'
+                })
+            ));
+        });
+
+        it('should return prints for a gallery with correct order', async () => {
+            const response = await request(app)
+                .get(`/api/v1/artist/galleries/${testGallery.id}/prints`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.prints).toHaveLength(3);
+            expect(response.body.prints[0].title).toBe('Artwork 2');
+            expect(response.body.prints[0].order).toBe(1);
+            expect(response.body.prints[1].title).toBe('Artwork 1');
+            expect(response.body.prints[1].order).toBe(2);
+            expect(response.body.prints[2].title).toBe('Artwork 3');
+            expect(response.body.prints[2].order).toBe(3);
+        });
+
+        it('should handle pagination correctly', async () => {
+            const response = await request(app)
+                .get(`/api/v1/artist/galleries/${testGallery.id}/prints`)
+                .query({ page: 1, limit: 2 })
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.prints).toHaveLength(2);
+            expect(response.body.totalCount).toBe(3);
+            expect(response.body.currentPage).toBe(1);
+            expect(response.body.totalPages).toBe(2);
+        });
+
+        it('should return 404 if gallery is not found', async () => {
+            const response = await request(app)
+                .get('/api/v1/artist/galleries/99999/prints')
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual({ error: 'Gallery not found' });
+        });
+
+        it('should return 404 if gallery belongs to another artist', async () => {
+            const otherArtist = await Artist.create({
+                keycloak_id: 'other-artist-id',
+                username: 'otherartist',
+                email: 'other@example.com',
+                default_language: 'en'
+            });
+
+            const otherGallery = await Gallery.create({
+                artist_id: otherArtist.id,
+                status: 'published'
+            });
+
+            const response = await request(app)
+                .get(`/api/v1/artist/galleries/${otherGallery.id}/prints`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual({ error: 'Gallery not found' });
         });
     });
 });
