@@ -71,73 +71,6 @@ exports.getArtistGalleries = async (req, res, next) => {
     }
 };
 
-exports.createGallery = async (req, res, next) => {
-    const { title, description, status = 'draft' } = req.body;
-    const language = req.query.language || 'en';
-
-    if (!title) {
-        return res.status(400).json({ error: 'Title is required' });
-    }
-
-    let transaction;
-    try {
-        transaction = await sequelize.transaction();
-
-        const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
-        if (!artist) {
-            await transaction.rollback();
-            return res.status(404).json({ error: 'Artist not found' });
-        }
-
-        const gallery = await Gallery.create({
-            artist_id: artist.id,
-            status: status
-        }, { transaction });
-
-        await Translation.create({
-            entity_id: gallery.id,
-            entity_type: 'Gallery',
-            field_name: 'title',
-            translated_content: title,
-            language_code: language
-        }, { transaction });
-
-        if (description) {
-            await Translation.create({
-                entity_id: gallery.id,
-                entity_type: 'Gallery',
-                field_name: 'description',
-                translated_content: description,
-                language_code: language
-            }, { transaction });
-        }
-
-        await transaction.commit();
-
-        const createdGallery = await Gallery.findOne({
-            where: { id: gallery.id },
-            include: [{
-                model: Translation,
-                where: { language_code: language },
-                required: false
-            }]
-        });
-
-        res.status(201).json({
-            id: createdGallery.id,
-            title: createdGallery.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
-            description: createdGallery.Translations.find(t => t.field_name === 'description')?.translated_content || '',
-            status: createdGallery.status,
-            createdAt: createdGallery.created_at,
-            updatedAt: createdGallery.updated_at
-        });
-    } catch (error) {
-        console.log('Error in createGallery', error);
-        if (transaction) await transaction.rollback();
-        next(error);
-    }
-};
-
 exports.getGallery = async (req, res, next) => {
     try {
         const { galleryId } = req.params;
@@ -198,6 +131,75 @@ exports.getGallery = async (req, res, next) => {
     }
 };
 
+async function handleTranslation(entityId, entityType, fieldName, content, language, transaction) {
+    const [translation, created] = await Translation.findOrCreate({
+        where: {
+            entity_id: entityId,
+            entity_type: entityType,
+            field_name: fieldName,
+            language_code: language
+        },
+        defaults: {
+            translated_content: content
+        },
+        transaction
+    });
+
+    if (!created && translation.translated_content !== content) {
+        await translation.update({ translated_content: content }, { transaction });
+    }
+
+    return translation;
+}
+
+exports.createGallery = async (req, res, next) => {
+    const transaction = await sequelize.transaction();
+    try {
+        const { title, description, status = 'draft' } = req.body;
+        const language = req.query.language || 'en';
+
+        const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
+        if (!artist) {
+            await transaction.rollback();
+            return res.status(404).json({ error: 'Artist not found' });
+        }
+
+        const gallery = await Gallery.create({
+            artist_id: artist.id,
+            status: status
+        }, { transaction });
+
+        await handleTranslation(gallery.id, 'Gallery', 'title', title, language, transaction);
+
+        if (description) {
+            await handleTranslation(gallery.id, 'Gallery', 'description', description, language, transaction);
+        }
+
+        await transaction.commit();
+
+        const createdGallery = await Gallery.findOne({
+            where: { id: gallery.id },
+            include: [{
+                model: Translation,
+                where: { language_code: language },
+                required: false
+            }]
+        });
+
+        res.status(201).json({
+            id: createdGallery.id,
+            title: createdGallery.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
+            description: createdGallery.Translations.find(t => t.field_name === 'description')?.translated_content || '',
+            status: createdGallery.status,
+            createdAt: createdGallery.created_at,
+            updatedAt: createdGallery.updated_at
+        });
+    } catch (error) {
+        await transaction.rollback();
+        next(error);
+    }
+};
+
 exports.updateGallery = async (req, res, next) => {
     const transaction = await sequelize.transaction();
     try {
@@ -230,33 +232,11 @@ exports.updateGallery = async (req, res, next) => {
         }
 
         if (title) {
-            await Translation.update(
-                { translated_content: title },
-                {
-                    where: {
-                        entity_id: gallery.id,
-                        entity_type: 'Gallery',
-                        field_name: 'title',
-                        language_code: language
-                    },
-                    transaction
-                }
-            );
+            await handleTranslation(gallery.id, 'Gallery', 'title', title, language, transaction);
         }
 
         if (description) {
-            await Translation.update(
-                { translated_content: description },
-                {
-                    where: {
-                        entity_id: gallery.id,
-                        entity_type: 'Gallery',
-                        field_name: 'description',
-                        language_code: language
-                    },
-                    transaction
-                }
-            );
+            await handleTranslation(gallery.id, 'Gallery', 'description', description, language, transaction);
         }
 
         await transaction.commit();

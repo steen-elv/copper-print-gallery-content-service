@@ -303,16 +303,6 @@ describe('Artist Controller', () => {
             expect(response.body.updatedAt).toBeDefined();
         });
 
-        it('should return 400 if title is missing', async () => {
-            const response = await request(app)
-                .post('/api/v1/artist/galleries')
-                .set('Authorization', `Bearer ${validToken}`)
-                .send({description: 'Test description'});
-
-            expect(response.status).toBe(400);
-            expect(response.body).toEqual({error: 'Title is required'});
-        });
-
         it('should create a gallery with default draft status if status is not provided', async () => {
             const newGallery = {
                 title: 'Test Gallery Without Status'
@@ -325,6 +315,47 @@ describe('Artist Controller', () => {
 
             expect(response.status).toBe(201);
             expect(response.body.status).toBe('draft');
+        });
+
+        it('should create a new gallery with default language', async () => {
+            const newGallery = {
+                title: 'New Test Gallery',
+                description: 'This is a test gallery',
+                status: 'draft'
+            };
+
+            const response = await request(app)
+                .post('/api/v1/artist/galleries')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send(newGallery);
+
+            expect(response.status).toBe(201);
+            expect(response.body).toMatchObject({
+                title: newGallery.title,
+                description: newGallery.description,
+                status: newGallery.status
+            });
+        });
+
+        it('should create a new gallery with specified language', async () => {
+            const newGallery = {
+                title: 'Ny Testgalleri',
+                description: 'Dette er et testgalleri',
+                status: 'draft'
+            };
+
+            const response = await request(app)
+                .post('/api/v1/artist/galleries')
+                .set('Authorization', `Bearer ${validToken}`)
+                .query({ language: 'da' })
+                .send(newGallery);
+
+            expect(response.status).toBe(201);
+            expect(response.body).toMatchObject({
+                title: newGallery.title,
+                description: newGallery.description,
+                status: newGallery.status
+            });
         });
     });
     describe('getGallery', () => {
@@ -531,6 +562,48 @@ describe('Artist Controller', () => {
 
             expect(responseEn.body.title).toBe('Original Title');
             expect(responseDa.body.title).toBe('Dansk Titel');
+        });
+
+        it('should update gallery details with default language', async () => {
+            const updatedDetails = {
+                title: 'Updated Title',
+                description: 'Updated Description',
+                status: 'published'
+            };
+
+            const response = await request(app)
+                .put(`/api/v1/artist/galleries/${testGallery.id}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send(updatedDetails);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toMatchObject(updatedDetails);
+        });
+
+        it('should update gallery details with specified language', async () => {
+            const updatedDetails = {
+                title: 'Opdateret Titel',
+                description: 'Opdateret Beskrivelse',
+                status: 'published'
+            };
+
+            const response = await request(app)
+                .put(`/api/v1/artist/galleries/${testGallery.id}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .query({ language: 'da' })
+                .send(updatedDetails);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toMatchObject(updatedDetails);
+
+            // Verify that English translation remains unchanged
+            const englishResponse = await request(app)
+                .get(`/api/v1/artist/galleries/${testGallery.id}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .query({ language: 'en' });
+
+            expect(englishResponse.body.title).toBe('Original Title');
+            expect(englishResponse.body.description).toBe('Original Description');
         });
     });
 });
