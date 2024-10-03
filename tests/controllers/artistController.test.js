@@ -24,6 +24,7 @@ app.use(extractJwtInfo);
 app.get('/api/v1/artist/galleries', artistController.getArtistGalleries);
 app.post('/api/v1/artist/galleries', artistController.createGallery);
 app.get('/api/v1/artist/galleries/:galleryId', artistController.getGallery);
+app.put('/api/v1/artist/galleries/:galleryId', artistController.getGallery);
 
 
 describe('Artist Controller', () => {
@@ -423,6 +424,97 @@ describe('Artist Controller', () => {
 
             expect(response.status).toBe(401);
             expect(response.body).toEqual({ error: 'Authorization header missing' });
+        });
+    });
+
+    describe('updateGallery', () => {
+        let testGallery;
+
+        beforeEach(async () => {
+            testGallery = await Gallery.create({
+                artist_id: testArtist.id,
+                status: 'draft'
+            });
+
+            await Translation.create({
+                entity_id: testGallery.id,
+                entity_type: 'Gallery',
+                field_name: 'title',
+                translated_content: 'Original Title',
+                language_code: 'en'
+            });
+
+            await Translation.create({
+                entity_id: testGallery.id,
+                entity_type: 'Gallery',
+                field_name: 'description',
+                translated_content: 'Original Description',
+                language_code: 'en'
+            });
+        });
+
+        it('should update gallery details', async () => {
+            const updatedDetails = {
+                title: 'Updated Title',
+                description: 'Updated Description',
+                status: 'published'
+            };
+
+            const response = await request(app)
+                .put(`/api/v1/artist/galleries/${testGallery.id}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send(updatedDetails);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toMatchObject({
+                id: testGallery.id,
+                title: updatedDetails.title,
+                description: updatedDetails.description,
+                status: updatedDetails.status
+            });
+        });
+
+        it('should return 404 if gallery is not found', async () => {
+            const response = await request(app)
+                .put('/api/v1/artist/galleries/99999')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ title: 'New Title' });
+
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual({ error: 'Gallery not found' });
+        });
+
+        it('should only update provided fields', async () => {
+            const response = await request(app)
+                .put(`/api/v1/artist/galleries/${testGallery.id}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ title: 'New Title' });
+
+            expect(response.status).toBe(200);
+            expect(response.body.title).toBe('New Title');
+            expect(response.body.description).toBe('Original Description');
+            expect(response.body.status).toBe('draft');
+        });
+
+        it('should handle different languages', async () => {
+            await request(app)
+                .put(`/api/v1/artist/galleries/${testGallery.id}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .query({ language: 'da' })
+                .send({ title: 'Dansk Titel', description: 'Dansk Beskrivelse' });
+
+            const responseEn = await request(app)
+                .get(`/api/v1/artist/galleries/${testGallery.id}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .query({ language: 'en' });
+
+            const responseDa = await request(app)
+                .get(`/api/v1/artist/galleries/${testGallery.id}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .query({ language: 'da' });
+
+            expect(responseEn.body.title).toBe('Original Title');
+            expect(responseDa.body.title).toBe('Dansk Titel');
         });
     });
 });
