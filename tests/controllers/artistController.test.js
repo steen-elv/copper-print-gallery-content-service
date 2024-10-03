@@ -644,8 +644,16 @@ describe('Artist Controller', () => {
             await Promise.all(testArtworks.map((artwork, index) =>
                 Image.create({
                     artwork_id: artwork.id,
+                    original_filename: `original_artwork_${index + 1}.jpg`,
+                    storage_bucket: 'test-bucket',
+                    storage_path: `/artworks/${artwork.id}/thumbnail.jpg`,
+                    public_url: `https://cdn.example.com/thumbnails/artwork_${index + 1}.jpg`,
+                    width: 200,
+                    height: 200,
+                    format: 'image/jpeg',
+                    file_size: 1024 * 10, // 10KB
                     version: 'thumbnail',
-                    public_url: `https://cdn.example.com/thumbnails/artwork_${index + 1}.jpg`
+                    status: 'processed'
                 })
             ));
         });
