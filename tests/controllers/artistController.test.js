@@ -24,7 +24,7 @@ app.use(extractJwtInfo);
 app.get('/api/v1/artist/galleries', artistController.getArtistGalleries);
 app.post('/api/v1/artist/galleries', artistController.createGallery);
 app.get('/api/v1/artist/galleries/:galleryId', artistController.getGallery);
-app.put('/api/v1/artist/galleries/:galleryId', artistController.getGallery);
+app.put('/api/v1/artist/galleries/:galleryId', artistController.updateGallery);
 
 
 describe('Artist Controller', () => {
@@ -454,16 +454,23 @@ describe('Artist Controller', () => {
         });
 
         it('should update gallery details', async () => {
+            console.log('Test gallery before update:', testGallery.toJSON());
+
             const updatedDetails = {
                 title: 'Updated Title',
                 description: 'Updated Description',
                 status: 'published'
             };
 
+            console.log('Sending update request with:', updatedDetails);
+
             const response = await request(app)
                 .put(`/api/v1/artist/galleries/${testGallery.id}`)
                 .set('Authorization', `Bearer ${validToken}`)
                 .send(updatedDetails);
+
+            console.log('Response status:', response.status);
+            console.log('Response body:', response.body);
 
             expect(response.status).toBe(200);
             expect(response.body).toMatchObject({
@@ -472,6 +479,20 @@ describe('Artist Controller', () => {
                 description: updatedDetails.description,
                 status: updatedDetails.status
             });
+
+            // Verify the database was actually updated
+            const updatedGallery = await Gallery.findByPk(testGallery.id, {
+                include: [{
+                    model: Translation,
+                    where: { language_code: 'en' },
+                    required: false
+                }]
+            });
+            console.log('Updated gallery in database:', updatedGallery.toJSON());
+
+            expect(updatedGallery.status).toBe(updatedDetails.status);
+            expect(updatedGallery.Translations.find(t => t.field_name === 'title').translated_content).toBe(updatedDetails.title);
+            expect(updatedGallery.Translations.find(t => t.field_name === 'description').translated_content).toBe(updatedDetails.description);
         });
 
         it('should return 404 if gallery is not found', async () => {
