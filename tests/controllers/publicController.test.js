@@ -53,7 +53,7 @@ describe('getPrints', () => {
             default_language: 'en'
         });
 
-        const gallery = await Gallery.create({id: 1, artist_id: artist.id})
+        const gallery = await Gallery.create({id: 1, artist_id: artist.id, status: 'published'})
 
         // Create test data
         const artwork1 = await Artwork.create({id: 1});
@@ -137,7 +137,7 @@ describe('getPrints', () => {
             default_language: 'en'
         });
 
-        const gallery = await Gallery.create({id: 1, artist_id: artist.id})
+        const gallery = await Gallery.create({id: 1, artist_id: artist.id, status: 'published'})
 
         // Create test data with specific attributes
         const artwork = await Artwork.create({
@@ -231,7 +231,7 @@ describe('getPrints', () => {
             default_language: 'en'
         });
 
-        const gallery = await Gallery.create({id: 1, artist_id: artist.id})
+        const gallery = await Gallery.create({id: 1, artist_id: artist.id, status: 'published'})
 
         // Create 15 prints
         for (let i = 1; i <= 15; i++) {
@@ -297,7 +297,7 @@ describe('getPrints', () => {
             email: 'test@example.com',
             default_language: 'en'
         });
-        const gallery = await Gallery.create({id: 1, artist_id: artist.id})
+        const gallery = await Gallery.create({id: 1, artist_id: artist.id, status: 'published'})
         const artwork = await Artwork.create({id: 1});
         await GalleryArtwork.create({
             id: 1,

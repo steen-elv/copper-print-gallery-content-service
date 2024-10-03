@@ -5,7 +5,7 @@ info:
   description: API for artists to manage their galleries and copper print artworks in the Copper Print Gallery system
 
 servers:
-  - url: '{protocol}://{environment}.artist.{domain}/api/v1'
+  - url: '{protocol}://{environment}.artist.{domain}/api/v1/artist'
     variables:
       protocol:
         enum:

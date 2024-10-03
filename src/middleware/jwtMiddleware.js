@@ -1,6 +1,13 @@
 const jwt = require('jsonwebtoken');
+const { isAuthRequired } = require('../config/authConfig');
 
 const extractJwtInfo = (req, res, next) => {
+    // Check if the route requires authentication
+    if (!isAuthRequired(req.path)) {
+        // If authentication is not required, proceed without checking JWT
+        return next();
+    }
+
     const authHeader = req.headers.authorization;
     if (authHeader) {
         const token = authHeader.split(' ')[1]; // Bearer <token>
@@ -11,10 +18,10 @@ const extractJwtInfo = (req, res, next) => {
                 req.keycloak_id = decoded.sub;
                 next();
             } else {
-                res.status(400).json({ error: 'Invalid token format' });
+                res.status(401).json({ error: 'Invalid token' });
             }
         } catch (error) {
-            res.status(400).json({ error: 'Error decoding token' });
+            res.status(401).json({ error: 'Error decoding token' });
         }
     } else {
         res.status(401).json({ error: 'Authorization header missing' });
