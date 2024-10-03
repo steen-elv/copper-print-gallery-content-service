@@ -12,7 +12,8 @@ const {
     Gallery,
     GalleryArtwork,
     Artwork,
-    Translation
+    Translation,
+    Image
 } = require('../../src/models/index');
 
 const artistController = require('../../src/controllers/artistController');
@@ -639,23 +640,39 @@ describe('Artist Controller', () => {
                     language_code: 'en'
                 })
             ));
+
+            await Promise.all(testArtworks.map((artwork, index) =>
+                Image.create({
+                    artwork_id: artwork.id,
+                    version: 'thumbnail',
+                    public_url: `https://cdn.example.com/thumbnails/artwork_${index + 1}.jpg`
+                })
+            ));
         });
 
-        it('should return prints for a gallery with correct order', async () => {
+        it('should return prints for a gallery with correct order and thumbnail URLs', async () => {
             const response = await request(app)
                 .get(`/api/v1/artist/galleries/${testGallery.id}/prints`)
                 .set('Authorization', `Bearer ${validToken}`);
 
             expect(response.status).toBe(200);
             expect(response.body.prints).toHaveLength(3);
-            expect(response.body.prints[0].title).toBe('Artwork 2');
-            expect(response.body.prints[0].order).toBe(1);
-            expect(response.body.prints[1].title).toBe('Artwork 1');
-            expect(response.body.prints[1].order).toBe(2);
-            expect(response.body.prints[2].title).toBe('Artwork 3');
-            expect(response.body.prints[2].order).toBe(3);
+            expect(response.body.prints[0]).toMatchObject({
+                title: 'Artwork 2',
+                order: 1,
+                thumbnailUrl: 'https://cdn.example.com/thumbnails/artwork_2.jpg'
+            });
+            expect(response.body.prints[1]).toMatchObject({
+                title: 'Artwork 1',
+                order: 2,
+                thumbnailUrl: 'https://cdn.example.com/thumbnails/artwork_1.jpg'
+            });
+            expect(response.body.prints[2]).toMatchObject({
+                title: 'Artwork 3',
+                order: 3,
+                thumbnailUrl: 'https://cdn.example.com/thumbnails/artwork_3.jpg'
+            });
         });
-
         it('should handle pagination correctly', async () => {
             const response = await request(app)
                 .get(`/api/v1/artist/galleries/${testGallery.id}/prints`)

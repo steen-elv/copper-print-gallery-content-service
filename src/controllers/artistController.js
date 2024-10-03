@@ -1,4 +1,4 @@
-const { Gallery, Artwork, GalleryArtwork, Translation, Artist } = require('../models');
+const { Gallery, Artwork, GalleryArtwork, Translation, Artist, Image } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 
@@ -279,19 +279,12 @@ exports.getGalleryPrints = async (req, res, next) => {
             where: {
                 id: galleryId,
                 artist_id: artist.id
-            }
-        });
-
-        if (!gallery) {
-            return res.status(404).json({ error: 'Gallery not found' });
-        }
-
-        const { count, rows } = await Gallery.findAndCountAll({
-            where: { id: galleryId },
+            },
             include: [
                 {
                     model: Artwork,
                     through: {
+                        model: GalleryArtwork,
                         attributes: ['order']
                     },
                     include: [
@@ -299,30 +292,39 @@ exports.getGalleryPrints = async (req, res, next) => {
                             model: Translation,
                             where: {
                                 language_code: language,
-                                field_name: { [Op.in]: ['title', 'description'] }
+                                field_name: 'title'
                             },
+                            required: false
+                        },
+                        {
+                            model: Image,
+                            where: { version: 'thumbnail' },
                             required: false
                         }
                     ]
                 }
             ],
-            limit: Number(limit),
-            offset: Number(offset),
             order: [[Artwork, GalleryArtwork, 'order', 'ASC']]
         });
 
-        const prints = rows[0].Artworks.map(artwork => ({
+        if (!gallery) {
+            return res.status(404).json({ error: 'Gallery not found' });
+        }
+
+        const prints = gallery.Artworks.map(artwork => ({
             printId: artwork.id,
-            title: artwork.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
-            thumbnailUrl: `https://cdn.copperprintgallery.com/thumbnails/${artwork.id}.jpg`, // Placeholder URL
+            title: artwork.Translations[0]?.translated_content || 'Untitled',
+            thumbnailUrl: artwork.Images[0]?.public_url || null,
             order: artwork.GalleryArtwork.order
         }));
 
+        const totalCount = await GalleryArtwork.count({ where: { gallery_id: galleryId } });
+
         res.json({
             prints: prints,
-            totalCount: count,
+            totalCount: totalCount,
             currentPage: Number(page),
-            totalPages: Math.ceil(count / limit)
+            totalPages: Math.ceil(totalCount / limit)
         });
     } catch (error) {
         console.error('Error in getGalleryPrints:', error);
