@@ -43,6 +43,14 @@ paths:
       operationId: createGallery
       summary: Create a new gallery
       description: Creates a new gallery for the authenticated artist
+      parameters:
+        - in: query
+          name: language
+          schema:
+            type: string
+            enum: [ en, da ]
+          description: >
+            Language code for the gallery title and description (default: en)
       requestBody:
         $ref: '#/components/requestBodies/GalleryCreate'
       responses:
@@ -77,6 +85,13 @@ paths:
       description: Updates an existing gallery owned by the authenticated artist
       parameters:
         - $ref: '#/components/parameters/galleryId'
+        - in: query
+          name: language
+          schema:
+            type: string
+            enum: [ en, da ]
+          description: >
+            Language code for the gallery title and description (default: en)
       requestBody:
         $ref: '#/components/requestBodies/GalleryUpdate'
       responses:
