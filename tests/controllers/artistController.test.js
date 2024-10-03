@@ -681,6 +681,7 @@ describe('Artist Controller', () => {
                 thumbnailUrl: 'https://cdn.example.com/thumbnails/artwork_3.jpg'
             });
         });
+
         it('should handle pagination correctly', async () => {
             const response = await request(app)
                 .get(`/api/v1/artist/galleries/${testGallery.id}/prints`)
@@ -692,6 +693,20 @@ describe('Artist Controller', () => {
             expect(response.body.totalCount).toBe(3);
             expect(response.body.currentPage).toBe(1);
             expect(response.body.totalPages).toBe(2);
+
+            // Check the content of the first page
+            expect(response.body.prints[0].title).toBe('Artwork 2');
+            expect(response.body.prints[1].title).toBe('Artwork 1');
+
+            // Check the second page
+            const secondPageResponse = await request(app)
+                .get(`/api/v1/artist/galleries/${testGallery.id}/prints`)
+                .query({ page: 2, limit: 2 })
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(secondPageResponse.status).toBe(200);
+            expect(secondPageResponse.body.prints).toHaveLength(1);
+            expect(secondPageResponse.body.prints[0].title).toBe('Artwork 3');
         });
 
         it('should return 404 if gallery is not found', async () => {

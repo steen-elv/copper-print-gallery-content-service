@@ -311,20 +311,21 @@ exports.getGalleryPrints = async (req, res, next) => {
             return res.status(404).json({ error: 'Gallery not found' });
         }
 
-        const prints = gallery.Artworks.map(artwork => ({
+        const totalCount = gallery.Artworks.length;
+        const paginatedArtworks = gallery.Artworks.slice(offset, offset + Number(limit));
+
+        const prints = paginatedArtworks.map(artwork => ({
             printId: artwork.id,
             title: artwork.Translations[0]?.translated_content || 'Untitled',
             thumbnailUrl: artwork.Images[0]?.public_url || null,
             order: artwork.GalleryArtwork.order
         }));
 
-        const totalCount = await GalleryArtwork.count({ where: { gallery_id: galleryId } });
-
         res.json({
             prints: prints,
             totalCount: totalCount,
             currentPage: Number(page),
-            totalPages: Math.ceil(totalCount / limit)
+            totalPages: Math.ceil(totalCount / Number(limit))
         });
     } catch (error) {
         console.error('Error in getGalleryPrints:', error);
