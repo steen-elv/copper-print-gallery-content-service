@@ -562,7 +562,9 @@ exports.getArtistPrints = async (req, res, next) => {
             ],
             order: [['created_at', 'DESC']],
             limit: Number(limit),
-            offset: Number(offset)
+            offset: Number(offset),
+            distinct: true, // This ensures we count unique artworks
+            subQuery: false // This can help with performance for complex queries
         });
 
         const prints = rows.map(artwork => ({

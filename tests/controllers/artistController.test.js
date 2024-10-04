@@ -1020,12 +1020,14 @@ describe('Artist Controller', () => {
     });
 
     describe('getArtistPrints', () => {
+        let artworks;
+
         beforeEach(async () => {
             await Artwork.destroy({ where: {} });
             await Translation.destroy({ where: {} });
             await Image.destroy({ where: {} });
 
-            const artworks = await Promise.all([
+            artworks = await Promise.all([
                 Artwork.create({
                     artist_id: testArtist.id,
                     technique: 'Etching',
@@ -1089,20 +1091,20 @@ describe('Artist Controller', () => {
                 .set('Authorization', `Bearer ${validToken}`);
 
             expect(response.status).toBe(200);
-            expect(response.body.prints).toHaveLength(3);
-            expect(response.body.totalCount).toBe(3);
+            expect(response.body.prints).toHaveLength(artworks.length);
+            expect(response.body.totalCount).toBe(artworks.length);
             expect(response.body.currentPage).toBe(1);
             expect(response.body.totalPages).toBe(1);
 
             expect(response.body.prints[0]).toMatchObject({
-                title: 'Artwork 3 Title',
-                description: 'Artwork 3 Description',
+                title: `Artwork ${artworks[2].id} Title`,
+                description: `Artwork ${artworks[2].id} Description`,
                 technique: 'Etching',
                 plateType: 'Copper',
                 year: 2023,
                 paperType: 'Cotton',
                 status: 'published',
-                thumbnailUrl: 'https://example.com/thumbnail_3.jpg'
+                thumbnailUrl: 'https://example.com/thumbnail_${artworks[2].id}.jpg'
             });
         });
 
@@ -1117,7 +1119,7 @@ describe('Artist Controller', () => {
             expect(response.body.totalCount).toBe(3);
             expect(response.body.currentPage).toBe(1);
             expect(response.body.totalPages).toBe(2);
-        });
+            });
 
         it('should filter prints correctly', async () => {
             const response = await request(app)
