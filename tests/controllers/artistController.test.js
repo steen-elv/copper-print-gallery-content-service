@@ -74,8 +74,8 @@ describe('Artist Controller', () => {
                 status: 'draft'
             });
 
-            const artwork1 = await Artwork.create();
-            const artwork2 = await Artwork.create();
+            const artwork1 = await Artwork.create({artist_id: testArtist.id});
+            const artwork2 = await Artwork.create({artist_id: testArtist.id});
 
             await GalleryArtwork.create({gallery_id: gallery1.id, artwork_id: artwork1.id, order: 1});
             await GalleryArtwork.create({gallery_id: gallery1.id, artwork_id: artwork2.id, order: 2});
@@ -389,7 +389,7 @@ describe('Artist Controller', () => {
                 language_code: 'en'
             });
 
-            const artwork = await Artwork.create();
+            const artwork = await Artwork.create({artist_id: testArtist.id});
             await GalleryArtwork.create({gallery_id: gallery.id, artwork_id: artwork.id, order: 1});
 
             const response = await request(app)
@@ -627,9 +627,9 @@ describe('Artist Controller', () => {
             });
 
             testArtworks = await Promise.all([
-                Artwork.create(),
-                Artwork.create(),
-                Artwork.create()
+                Artwork.create({artist_id: testArtist.id}),
+                Artwork.create({artist_id: testArtist.id}),
+                Artwork.create({artist_id: testArtist.id})
             ]);
 
             await Promise.all([
@@ -758,9 +758,9 @@ describe('Artist Controller', () => {
             });
 
             testArtworks = await Promise.all([
-                Artwork.create(),
-                Artwork.create(),
-                Artwork.create()
+                Artwork.create({artist_id: testArtist.id}),
+                Artwork.create({artist_id: testArtist.id}),
+                Artwork.create({artist_id: testArtist.id})
             ]);
 
             await Promise.all([
@@ -811,7 +811,7 @@ describe('Artist Controller', () => {
         });
 
         it('should return 400 if a print does not belong to the gallery', async () => {
-            const invalidArtwork = await Artwork.create();
+            const invalidArtwork = await Artwork.create({artist_id: testArtist.id});
             const newOrder = [
                 {printId: invalidArtwork.id, newOrder: 1},
                 {printId: testArtworks[0].id, newOrder: 2}
@@ -839,9 +839,9 @@ describe('Artist Controller', () => {
             });
 
             testArtworks = await Promise.all([
-                Artwork.create(),
-                Artwork.create(),
-                Artwork.create()
+                Artwork.create({artist_id: testArtist.id}),
+                Artwork.create({artist_id: testArtist.id}),
+                Artwork.create({artist_id: testArtist.id})
             ]);
 
             await Promise.all([
@@ -850,7 +850,7 @@ describe('Artist Controller', () => {
                 GalleryArtwork.create({gallery_id: testGallery.id, artwork_id: testArtworks[2].id, order: 3})
             ]);
 
-            newArtwork = await Artwork.create();
+            newArtwork = await Artwork.create({artist_id: testArtist.id});
         });
 
         it('should add a print to the gallery successfully', async () => {
@@ -943,9 +943,9 @@ describe('Artist Controller', () => {
             });
 
             testArtworks = await Promise.all([
-                Artwork.create(),
-                Artwork.create(),
-                Artwork.create()
+                Artwork.create({artist_id: testArtist.id}),
+                Artwork.create({artist_id: testArtist.id}),
+                Artwork.create({artist_id: testArtist.id})
             ]);
 
             await Promise.all([
@@ -989,7 +989,7 @@ describe('Artist Controller', () => {
         });
 
         it('should return 404 if print is not found in the gallery', async () => {
-            const nonExistentArtwork = await Artwork.create();
+            const nonExistentArtwork = await Artwork.create({artist_id: testArtist.id});
             const response = await request(app)
                 .delete(`/api/v1/artist/galleries/${testGallery.id}/prints/${nonExistentArtwork.id}`)
                 .set('Authorization', `Bearer ${validToken}`);
@@ -1113,7 +1113,7 @@ describe('Artist Controller', () => {
                 title: `Artwork ${firstCreatedArtwork.id} Title`,
                 description: `Artwork ${firstCreatedArtwork.id} Description`,
                 artistName: firstCreatedArtworkMetadata.artist_name,
-                yearCreated: firstCreatedArtworkMetadata.year_created,
+                year: firstCreatedArtworkMetadata.year_created,
                 medium: firstCreatedArtworkMetadata.medium,
                 technique: firstCreatedArtworkMetadata.technique,
                 dimensions: firstCreatedArtworkMetadata.dimensions,

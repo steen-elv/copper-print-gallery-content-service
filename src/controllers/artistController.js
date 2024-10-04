@@ -539,16 +539,41 @@ exports.getArtistPrints = async (req, res, next) => {
             return res.status(404).json({ error: 'Artist not found' });
         }
 
-        const where = { artist_id: artist.id };
-        if (technique) where['$metadata.technique$'] = technique;
-        if (year) where['$metadata.year_created$'] = year;
-        if (plateType) where['$metadata.plate_material$'] = plateType;
-        if (paperType) where['$metadata.paper_type$'] = paperType;
+        const whereClause = { artist_id: artist.id };
+        const metadataWhereClause = {};
 
-        console.log('Debug: Where clause', JSON.stringify(where));
+        if (technique) metadataWhereClause.technique = technique;
+        if (year) metadataWhereClause.year_created = Number(year);
+        if (plateType) metadataWhereClause.plate_material = plateType;
+        if (paperType) metadataWhereClause.paper_type = paperType;
 
-        const { count, rows } = await Artwork.findAndCountAll({
-            where,
+        console.log('Debug: Where clause', JSON.stringify(whereClause));
+        console.log('Debug: Where metadataWhereClause', JSON.stringify(metadataWhereClause));
+
+        // First, get the total count and IDs of artworks
+        const { count, rows: artworkIds } = await Artwork.findAndCountAll({
+            where: whereClause,
+            include: [
+                {
+                    model: ArtworkMetadata,
+                    as: 'metadata',
+                    where: metadataWhereClause,
+                    required: true
+                }
+            ],
+            attributes: ['id'],
+            order: [[{ model: ArtworkMetadata, as: 'metadata' }, 'year_created', 'DESC']],
+            limit: Number(limit),
+            offset: Number(offset),
+            distinct: true,
+            subQuery: false
+        });
+
+        console.log(`Debug: Total count ${count}, Artwork IDs returned [${artworkIds.map(a => a.id)}]`);
+
+        // Now, fetch the full data for these artworks
+        const artworks = await Artwork.findAll({
+            where: { id: artworkIds.map(a => a.id) },
             include: [
                 {
                     model: ArtworkMetadata,
@@ -569,20 +594,15 @@ exports.getArtistPrints = async (req, res, next) => {
                     required: false
                 }
             ],
-            order: [[{ model: ArtworkMetadata, as: 'metadata' }, 'year_created', 'DESC']],
-            limit: Number(limit),
-            offset: Number(offset),
-            subQuery: false
+            order: [[{ model: ArtworkMetadata, as: 'metadata' }, 'year_created', 'DESC']]
         });
 
-        console.log(`Debug: Total count ${count}, Rows returned ${rows.length}`);
-
-        const prints = rows.map(artwork => ({
+        const prints = artworks.map(artwork => ({
             id: artwork.id,
             title: artwork.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
             description: artwork.Translations.find(t => t.field_name === 'description')?.translated_content || '',
             artistName: artwork.metadata.artist_name,
-            yearCreated: artwork.metadata.year_created,
+            year: artwork.metadata.year_created,
             medium: artwork.metadata.medium,
             technique: artwork.metadata.technique,
             dimensions: artwork.metadata.dimensions,
@@ -599,6 +619,7 @@ exports.getArtistPrints = async (req, res, next) => {
         }));
 
         console.log(`Debug: Prints mapped ${prints.length}`);
+        console.log(`Debug: Prints ${JSON.stringify(prints)}`);
 
         res.json({
             prints,

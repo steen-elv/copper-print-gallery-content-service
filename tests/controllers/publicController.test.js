@@ -56,8 +56,8 @@ describe('getPrints', () => {
         const gallery = await Gallery.create({id: 1, artist_id: artist.id, status: 'published'})
 
         // Create test data
-        const artwork1 = await Artwork.create({id: 1});
-        const artwork2 = await Artwork.create({id: 2});
+        const artwork1 = await Artwork.create({artist_id: artist.id});
+        const artwork2 = await Artwork.create({artist_id: artist.id});
 
         await GalleryArtwork.create({id: 1, gallery_id: gallery.id, artwork_id: artwork1.id, order: 1});
         await GalleryArtwork.create({id: 2, gallery_id: gallery.id, artwork_id: artwork2.id, order: 2});
@@ -141,10 +141,10 @@ describe('getPrints', () => {
 
         // Create test data with specific attributes
         const artwork = await Artwork.create({
-            id: 1
+            artist_id: artist.id
         });
         await ArtworkMetadata.create({
-            artwork_id: 1,
+            artwork_id: artwork.id,
             artist_name: 'test artist',
             technique: 'etching',
             year_created: 2023,
@@ -152,14 +152,14 @@ describe('getPrints', () => {
             paper_type: 'cotton'
         });
         await Translation.create({
-            entity_id: 1,
+            entity_id: artwork.id,
             entity_type: 'Artwork',
             field_name: 'title',
             translated_content: 'Etching Print',
             language_code: 'en'
         });
         await Image.create({
-            artwork_id: 1,
+            artwork_id: artwork.id,
             version: 'thumbnail',
             public_url: 'url1',
             original_filename: 'image1.jpg',
@@ -170,10 +170,10 @@ describe('getPrints', () => {
 
         // Create another artwork that doesn't match the query parameters
         const artwork2 = await Artwork.create({
-            id: 2
+            artist_id: artist.id
         });
         await ArtworkMetadata.create({
-            artwork_id: 2,
+            artwork_id: artwork2.id,
             artist_name: 'test artist 2',
             technique: 'aquatint',
             year_created: 2022,
@@ -181,14 +181,14 @@ describe('getPrints', () => {
             paper_type: 'washi'
         });
         await Translation.create({
-            entity_id: 2,
+            entity_id: artwork2.id,
             entity_type: 'Artwork',
             field_name: 'title',
             translated_content: 'Aquatint Print',
             language_code: 'en'
         });
         await Image.create({
-            artwork_id: 2,
+            artwork_id: artwork2.id,
             version: 'thumbnail',
             public_url: 'url2',
             original_filename: 'image2.jpg',
@@ -216,7 +216,7 @@ describe('getPrints', () => {
         expect(response.status).toBe(200);
         expect(response.body.prints).toHaveLength(1);
         expect(response.body.prints[0]).toEqual({
-            id: 1,
+            id: artwork.id,
             title: 'Etching Print',
             thumbnailUrl: 'url1'
         });
@@ -235,7 +235,7 @@ describe('getPrints', () => {
 
         // Create 15 prints
         for (let i = 1; i <= 15; i++) {
-            const artwork = await Artwork.create({id: i});
+            const artwork = await Artwork.create({ artist_id: artist.id});
             await GalleryArtwork.create({
                 id: 1,
                 gallery_id: gallery.id,
@@ -243,7 +243,7 @@ describe('getPrints', () => {
                 order: i
             });
             await ArtworkMetadata.create({
-                artwork_id: i,
+                artwork_id: artwork.id,
                 artist_name: 'test artist',
                 technique: 'etching',
                 year_created: 2023,
@@ -258,7 +258,7 @@ describe('getPrints', () => {
                 language_code: 'en'
             });
             await Image.create({
-                artwork_id: i,
+                artwork_id: artwork.id,
                 version: 'thumbnail',
                 public_url: `url${i}`,
                 original_filename: `image${i}.jpg`,
@@ -298,7 +298,7 @@ describe('getPrints', () => {
             default_language: 'en'
         });
         const gallery = await Gallery.create({id: 1, artist_id: artist.id, status: 'published'})
-        const artwork = await Artwork.create({id: 1});
+        const artwork = await Artwork.create({ artist_id: artist.id});
         await GalleryArtwork.create({
             id: 1,
             gallery_id: gallery.id,
@@ -306,7 +306,7 @@ describe('getPrints', () => {
             order: 1
         });
         await ArtworkMetadata.create({
-            artwork_id: 1,
+            artwork_id: artwork.id,
             artist_name: 'test artist',
             technique: 'etching',
             year_created: 2023,
@@ -314,21 +314,21 @@ describe('getPrints', () => {
             paper_type: 'cotton'
         });
         await Translation.create({
-            entity_id: 1,
+            entity_id: artwork.id,
             entity_type: 'Artwork',
             field_name: 'title',
             translated_content: 'Print EN',
             language_code: 'en'
         });
         await Translation.create({
-            entity_id: 1,
+            entity_id: artwork.id,
             entity_type: 'Artwork',
             field_name: 'title',
             translated_content: 'Print DA',
             language_code: 'da'
         });
         await Image.create({
-            artwork_id: 1,
+            artwork_id: artwork.id,
             version: 'thumbnail',
             public_url: 'url1',
             original_filename: 'image1.jpg',

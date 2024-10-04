@@ -163,6 +163,7 @@ exports.getPrints = async (req, res, next) => {
         },
         {
           model: ArtworkMetadata,
+          as: 'metadata',
           where: metadataWhereClause,
           required: Object.keys(metadataWhereClause).length > 0
         },
