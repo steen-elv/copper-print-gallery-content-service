@@ -1021,22 +1021,32 @@ describe('Artist Controller', () => {
     });
 
     describe('getArtistPrints', () => {
+        let testArtist;
         let artworks;
 
         beforeEach(async () => {
-            await Artwork.destroy({where: {}});
-            await ArtworkMetadata.destroy({where: {}});
-            await Translation.destroy({where: {}});
-            await Image.destroy({where: {}});
+            await Artist.destroy({ where: {} });
+            await Artwork.destroy({ where: {} });
+            await ArtworkMetadata.destroy({ where: {} });
+            await Translation.destroy({ where: {} });
+            await Image.destroy({ where: {} });
+
+            testArtist = await Artist.create({
+                keycloak_id: 'test-keycloak-id',
+                username: 'testartist',
+                email: 'test@example.com',
+                default_language: 'en'
+            });
 
             artworks = [];
             for (let i = 0; i < 3; i++) {
-                const artwork = await Artwork.create();
+                const artwork = await Artwork.create({
+                    artist_id: testArtist.id
+                });
                 artworks.push(artwork);
 
                 await ArtworkMetadata.create({
                     artwork_id: artwork.id,
-                    artist_name: testArtist.username,
                     year_created: 2023 - i,
                     medium: 'Printmaking',
                     technique: i % 2 === 0 ? 'Etching' : 'Aquatint',
@@ -1096,7 +1106,7 @@ describe('Artist Controller', () => {
 
             // The prints should be ordered by year_created DESC, so the first created artwork should be first
             const firstCreatedArtwork = artworks[0];
-            const firstCreatedArtworkMetadata = await ArtworkMetadata.findOne({where: {artwork_id: firstCreatedArtwork.id}});
+            const firstCreatedArtworkMetadata = await ArtworkMetadata.findOne({ where: { artwork_id: firstCreatedArtwork.id } });
             expect(response.body.prints[0]).toMatchObject({
                 id: firstCreatedArtwork.id,
                 title: `Artwork ${firstCreatedArtwork.id} Title`,

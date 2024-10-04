@@ -570,12 +570,12 @@ exports.getArtistPrints = async (req, res, next) => {
             distinct: true,
             subQuery: false
         });
-console.log(rows);
+
         const prints = rows.map(artwork => ({
             id: artwork.id,
             title: artwork.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
             description: artwork.Translations.find(t => t.field_name === 'description')?.translated_content || '',
-            artistName: artwork.ArtworkMetadata.artist_name,
+            artistName: artist.username,
             yearCreated: artwork.ArtworkMetadata.year_created,
             medium: artwork.ArtworkMetadata.medium,
             technique: artwork.ArtworkMetadata.technique,
