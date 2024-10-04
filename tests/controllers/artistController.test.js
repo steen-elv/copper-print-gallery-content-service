@@ -1023,53 +1023,37 @@ describe('Artist Controller', () => {
         let artworks;
 
         beforeEach(async () => {
-            await Artwork.destroy({where: {}});
-            await Translation.destroy({where: {}});
-            await Image.destroy({where: {}});
+            await Artwork.destroy({ where: {} });
+            await Translation.destroy({ where: {} });
+            await Image.destroy({ where: {} });
 
-            artworks = await Promise.all([
-                Artwork.create({
+            artworks = [];
+            for (let i = 0; i < 3; i++) {
+                const artwork = await Artwork.create({
                     artist_id: testArtist.id,
-                    technique: 'Etching',
-                    plate_type: 'Copper',
-                    year: 2023,
-                    paper_type: 'Cotton',
-                    status: 'published'
-                }),
-                Artwork.create({
-                    artist_id: testArtist.id,
-                    technique: 'Aquatint',
-                    plate_type: 'Zinc',
-                    year: 2022,
-                    paper_type: 'Rice',
-                    status: 'draft'
-                }),
-                Artwork.create({
-                    artist_id: testArtist.id,
-                    technique: 'Etching',
-                    plate_type: 'Copper',
-                    year: 2023,
-                    paper_type: 'Cotton',
-                    status: 'published'
-                })
-            ]);
+                    technique: i % 2 === 0 ? 'Etching' : 'Aquatint',
+                    plate_type: i % 2 === 0 ? 'Copper' : 'Zinc',
+                    year: 2023 - i,
+                    paper_type: i % 2 === 0 ? 'Cotton' : 'Rice',
+                    status: i % 2 === 0 ? 'published' : 'draft'
+                });
+                artworks.push(artwork);
 
-            await Promise.all(artworks.flatMap(artwork => [
-                Translation.create({
+                await Translation.create({
                     entity_id: artwork.id,
                     entity_type: 'Artwork',
                     field_name: 'title',
                     translated_content: `Artwork ${artwork.id} Title`,
                     language_code: 'en'
-                }),
-                Translation.create({
+                });
+                await Translation.create({
                     entity_id: artwork.id,
                     entity_type: 'Artwork',
                     field_name: 'description',
                     translated_content: `Artwork ${artwork.id} Description`,
                     language_code: 'en'
-                }),
-                Image.create({
+                });
+                await Image.create({
                     artwork_id: artwork.id,
                     original_filename: `original_${artwork.id}.jpg`,
                     storage_bucket: 'test-bucket',
@@ -1081,8 +1065,11 @@ describe('Artist Controller', () => {
                     file_size: 1024 * 10, // 10KB
                     version: 'thumbnail',
                     status: 'processed'
-                })
-            ]));
+                });
+
+                // Add a small delay to ensure distinct createdAt timestamps
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
         });
 
         it('should return all prints for the authenticated artist', async () => {
@@ -1096,7 +1083,6 @@ describe('Artist Controller', () => {
             expect(response.body.currentPage).toBe(1);
             expect(response.body.totalPages).toBe(1);
 
-            console.log(JSON.stringify(response.body.prints));
             // The prints should be ordered by created_at DESC, so the last created artwork should be first
             const lastCreatedArtwork = artworks[artworks.length - 1];
             expect(response.body.prints[0]).toMatchObject({
