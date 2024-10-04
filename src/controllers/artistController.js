@@ -575,7 +575,7 @@ exports.getArtistPrints = async (req, res, next) => {
             id: artwork.id,
             title: artwork.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
             description: artwork.Translations.find(t => t.field_name === 'description')?.translated_content || '',
-            artistName: artist.username,
+            artistName: artwork.ArtworkMetadata.artist_name,
             yearCreated: artwork.ArtworkMetadata.year_created,
             medium: artwork.ArtworkMetadata.medium,
             technique: artwork.ArtworkMetadata.technique,
@@ -599,6 +599,7 @@ exports.getArtistPrints = async (req, res, next) => {
             totalPages: Math.ceil(count / Number(limit))
         });
     } catch (error) {
+        console.error('Error in getPrint:', error);
         next(error);
     }
 };

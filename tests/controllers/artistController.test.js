@@ -1047,6 +1047,7 @@ describe('Artist Controller', () => {
 
                 await ArtworkMetadata.create({
                     artwork_id: artwork.id,
+                    artist_name: i === 1 ? 'Pseudonym Artist' : testArtist.username, // Use a pseudonym for one artwork
                     year_created: 2023 - i,
                     medium: 'Printmaking',
                     technique: i % 2 === 0 ? 'Etching' : 'Aquatint',
@@ -1111,7 +1112,7 @@ describe('Artist Controller', () => {
                 id: firstCreatedArtwork.id,
                 title: `Artwork ${firstCreatedArtwork.id} Title`,
                 description: `Artwork ${firstCreatedArtwork.id} Description`,
-                artistName: testArtist.username,
+                artistName: firstCreatedArtworkMetadata.artist_name,
                 yearCreated: firstCreatedArtworkMetadata.year_created,
                 medium: firstCreatedArtworkMetadata.medium,
                 technique: firstCreatedArtworkMetadata.technique,
@@ -1125,6 +1126,22 @@ describe('Artist Controller', () => {
                 price: firstCreatedArtworkMetadata.price,
                 thumbnailUrl: `https://example.com/thumbnail_${firstCreatedArtwork.id}.jpg`
             });
+        });
+
+        it('should handle pseudonyms correctly', async () => {
+            const response = await request(app)
+                .get('/api/v1/artist/prints')
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.prints).toHaveLength(artworks.length);
+
+            // Check that the pseudonym is used for the second artwork
+            expect(response.body.prints[1].artistName).toBe('Pseudonym Artist');
+
+            // Check that the regular artist name is used for other artworks
+            expect(response.body.prints[0].artistName).toBe(testArtist.username);
+            expect(response.body.prints[2].artistName).toBe(testArtist.username);
         });
 
         it('should handle pagination correctly', async () => {
