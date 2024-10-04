@@ -532,6 +532,8 @@ exports.getArtistPrints = async (req, res, next) => {
         const { page = 1, limit = 20, language = 'en', technique, year, plateType, paperType } = req.query;
         const offset = (page - 1) * limit;
 
+        console.log(`Debug: Page ${page}, Limit ${limit}, Offset ${offset}`);
+
         const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
         if (!artist) {
             return res.status(404).json({ error: 'Artist not found' });
@@ -542,6 +544,8 @@ exports.getArtistPrints = async (req, res, next) => {
         if (year) where['$metadata.year_created$'] = year;
         if (plateType) where['$metadata.plate_material$'] = plateType;
         if (paperType) where['$metadata.paper_type$'] = paperType;
+
+        console.log('Debug: Where clause', JSON.stringify(where));
 
         const { count, rows } = await Artwork.findAndCountAll({
             where,
@@ -568,9 +572,10 @@ exports.getArtistPrints = async (req, res, next) => {
             order: [[{ model: ArtworkMetadata, as: 'metadata' }, 'year_created', 'DESC']],
             limit: Number(limit),
             offset: Number(offset),
-            distinct: true,
             subQuery: false
         });
+
+        console.log(`Debug: Total count ${count}, Rows returned ${rows.length}`);
 
         const prints = rows.map(artwork => ({
             id: artwork.id,
@@ -592,6 +597,8 @@ exports.getArtistPrints = async (req, res, next) => {
             createdAt: artwork.created_at,
             updatedAt: artwork.updated_at
         }));
+
+        console.log(`Debug: Prints mapped ${prints.length}`);
 
         res.json({
             prints,

@@ -1170,6 +1170,8 @@ describe('Artist Controller', () => {
                 .query({ page: 1, limit: 2 })
                 .set('Authorization', `Bearer ${validToken}`);
 
+            console.log('Debug: Response body', JSON.stringify(response.body, null, 2));
+
             expect(response.status).toBe(200);
             expect(response.body.prints).toHaveLength(2);
             expect(response.body.totalCount).toBe(8); // 3 original + 5 new artworks
