@@ -27,6 +27,7 @@ app.post('/api/v1/artist/galleries', artistController.createGallery);
 app.get('/api/v1/artist/galleries/:galleryId', artistController.getGallery);
 app.put('/api/v1/artist/galleries/:galleryId', artistController.updateGallery);
 app.get('/api/v1/artist/galleries/:galleryId/prints', artistController.getGalleryPrints);
+app.put('/api/v1/artist/galleries/:galleryId/prints', artistController.updatePrintOrder);
 
 
 describe('Artist Controller', () => {
@@ -280,6 +281,7 @@ describe('Artist Controller', () => {
             ]));
         });
     });
+
     describe('createGallery', () => {
 
         it('should create a new gallery', async () => {
@@ -360,6 +362,7 @@ describe('Artist Controller', () => {
             });
         });
     });
+
     describe('getGallery', () => {
         it('should return gallery details for the authenticated artist', async () => {
             const gallery = await Gallery.create({
@@ -432,6 +435,7 @@ describe('Artist Controller', () => {
             expect(response.body).toEqual({ error: 'Gallery not found' });
         });
     });
+
     describe('Authentication', () => {
         it('should return 400 if an invalid token format is provided', async () => {
             const response = await request(app)
@@ -739,4 +743,85 @@ describe('Artist Controller', () => {
             expect(response.body).toEqual({ error: 'Gallery not found' });
         });
     });
+
+    describe('updatePrintOrder', () => {
+        let testGallery;
+        let testArtworks;
+
+        beforeEach(async () => {
+            testGallery = await Gallery.create({
+                artist_id: testArtist.id,
+                status: 'published'
+            });
+
+            testArtworks = await Promise.all([
+                Artwork.create(),
+                Artwork.create(),
+                Artwork.create()
+            ]);
+
+            await Promise.all([
+                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[0].id, order: 1 }),
+                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[1].id, order: 2 }),
+                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[2].id, order: 3 })
+            ]);
+        });
+
+        it('should update print order successfully', async () => {
+            const newOrder = [
+                { printId: testArtworks[2].id, newOrder: 1 },
+                { printId: testArtworks[0].id, newOrder: 2 },
+                { printId: testArtworks[1].id, newOrder: 3 }
+            ];
+
+            const response = await request(app)
+                .put(`/api/v1/artist/galleries/${testGallery.id}/prints`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ printOrders: newOrder });
+
+            expect(response.status).toBe(200);
+            expect(response.body.message).toBe('Print order updated successfully');
+
+            // Verify the new order
+            const updatedGallery = await Gallery.findOne({
+                where: { id: testGallery.id },
+                include: [{
+                    model: Artwork,
+                    through: { attributes: ['order'] }
+                }],
+                order: [[Artwork, GalleryArtwork, 'order', 'ASC']]
+            });
+
+            expect(updatedGallery.Artworks[0].id).toBe(testArtworks[2].id);
+            expect(updatedGallery.Artworks[1].id).toBe(testArtworks[0].id);
+            expect(updatedGallery.Artworks[2].id).toBe(testArtworks[1].id);
+        });
+
+        it('should return 404 if gallery is not found', async () => {
+            const response = await request(app)
+                .put('/api/v1/artist/galleries/99999/prints')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ printOrders: [] });
+
+            expect(response.status).toBe(404);
+            expect(response.body.error).toBe('Gallery not found');
+        });
+
+        it('should return 400 if a print does not belong to the gallery', async () => {
+            const invalidArtwork = await Artwork.create();
+            const newOrder = [
+                { printId: invalidArtwork.id, newOrder: 1 },
+                { printId: testArtworks[0].id, newOrder: 2 }
+            ];
+
+            const response = await request(app)
+                .put(`/api/v1/artist/galleries/${testGallery.id}/prints`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ printOrders: newOrder });
+
+            expect(response.status).toBe(400);
+            expect(response.body.error).toBe(`Print with ID ${invalidArtwork.id} does not belong to this gallery`);
+        });
+    });
 });
+

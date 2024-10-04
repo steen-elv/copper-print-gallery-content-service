@@ -332,3 +332,59 @@ exports.getGalleryPrints = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.updatePrintOrder = async (req, res, next) => {
+    const transaction = await sequelize.transaction();
+    try {
+        const { galleryId } = req.params;
+        const { printOrders } = req.body;
+
+        const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
+        if (!artist) {
+            await transaction.rollback();
+            return res.status(404).json({ error: 'Artist not found' });
+        }
+
+        const gallery = await Gallery.findOne({
+            where: {
+                id: galleryId,
+                artist_id: artist.id
+            }
+        });
+
+        if (!gallery) {
+            await transaction.rollback();
+            return res.status(404).json({ error: 'Gallery not found' });
+        }
+
+        // Verify all print IDs belong to this gallery
+        const galleryArtworks = await GalleryArtwork.findAll({
+            where: { gallery_id: galleryId }
+        });
+        const galleryPrintIds = new Set(galleryArtworks.map(ga => ga.artwork_id));
+
+        for (const { printId, newOrder } of printOrders) {
+            if (!galleryPrintIds.has(printId)) {
+                await transaction.rollback();
+                return res.status(400).json({ error: `Print with ID ${printId} does not belong to this gallery` });
+            }
+
+            await GalleryArtwork.update(
+                { order: newOrder },
+                {
+                    where: {
+                        gallery_id: galleryId,
+                        artwork_id: printId
+                    },
+                    transaction
+                }
+            );
+        }
+
+        await transaction.commit();
+        res.status(200).json({ message: 'Print order updated successfully' });
+    } catch (error) {
+        await transaction.rollback();
+        next(error);
+    }
+};
