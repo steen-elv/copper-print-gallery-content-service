@@ -12,6 +12,7 @@ const {
     Gallery,
     GalleryArtwork,
     Artwork,
+    ArtworkMetadata,
     Translation,
     Image
 } = require('../../src/models/index');
@@ -1023,27 +1024,31 @@ describe('Artist Controller', () => {
         let artworks;
 
         beforeEach(async () => {
-            await Artwork.destroy({ where: {} });
-            await Translation.destroy({ where: {} });
-            await Image.destroy({ where: {} });
+            await Artwork.destroy({where: {}});
+            await ArtworkMetadata.destroy({where: {}});
+            await Translation.destroy({where: {}});
+            await Image.destroy({where: {}});
 
             artworks = [];
             for (let i = 0; i < 3; i++) {
-                const artwork = await Artwork.create({
-                    artist_id: testArtist.id,
+                const artwork = await Artwork.create();
+                artworks.push(artwork);
+
+                await ArtworkMetadata.create({
+                    artwork_id: artwork.id,
+                    artist_name: testArtist.username,
+                    year_created: 2023 - i,
+                    medium: 'Printmaking',
                     technique: i % 2 === 0 ? 'Etching' : 'Aquatint',
-                    plate_material: i % 2 === 0 ? 'Copper' : 'Zinc',
-                    year: 2023 - i,
-                    paper_type: i % 2 === 0 ? 'Cotton' : 'Rice',
-                    status: i % 2 === 0 ? 'published' : 'draft',
                     dimensions: `${20 + i}x${30 + i}cm`,
-                    edition_size: 50 + i,
-                    edition_number: i + 1,
+                    edition_info: `Edition of ${50 + i}`,
+                    plate_material: i % 2 === 0 ? 'Copper' : 'Zinc',
+                    paper_type: i % 2 === 0 ? 'Cotton' : 'Rice',
                     ink_type: i % 2 === 0 ? 'Oil-based' : 'Water-based',
                     printing_press: `Press ${i + 1}`,
-                    artist_notes: `Notes for artwork ${i + 1}`
+                    availability: i % 2 === 0 ? 'Available' : 'Sold',
+                    price: 1000 + (i * 100)
                 });
-                artworks.push(artwork);
 
                 await Translation.create({
                     entity_id: artwork.id,
@@ -1089,24 +1094,26 @@ describe('Artist Controller', () => {
             expect(response.body.currentPage).toBe(1);
             expect(response.body.totalPages).toBe(1);
 
-            // The prints should be ordered by created_at DESC, so the last created artwork should be first
-            const lastCreatedArtwork = artworks[artworks.length - 1];
+            // The prints should be ordered by year_created DESC, so the first created artwork should be first
+            const firstCreatedArtwork = artworks[0];
+            const firstCreatedArtworkMetadata = await ArtworkMetadata.findOne({where: {artwork_id: firstCreatedArtwork.id}});
             expect(response.body.prints[0]).toMatchObject({
-                id: lastCreatedArtwork.id,
-                title: `Artwork ${lastCreatedArtwork.id} Title`,
-                description: `Artwork ${lastCreatedArtwork.id} Description`,
-                technique: lastCreatedArtwork.technique,
-                plateType: lastCreatedArtwork.plate_material,
-                year: lastCreatedArtwork.year,
-                paperType: lastCreatedArtwork.paper_type,
-                status: lastCreatedArtwork.status,
-                dimensions: lastCreatedArtwork.dimensions,
-                editionSize: lastCreatedArtwork.edition_size,
-                editionNumber: lastCreatedArtwork.edition_number,
-                inkType: lastCreatedArtwork.ink_type,
-                printingPress: lastCreatedArtwork.printing_press,
-                artistNotes: lastCreatedArtwork.artist_notes,
-                thumbnailUrl: `https://example.com/thumbnail_${lastCreatedArtwork.id}.jpg`
+                id: firstCreatedArtwork.id,
+                title: `Artwork ${firstCreatedArtwork.id} Title`,
+                description: `Artwork ${firstCreatedArtwork.id} Description`,
+                artistName: testArtist.username,
+                yearCreated: firstCreatedArtworkMetadata.year_created,
+                medium: firstCreatedArtworkMetadata.medium,
+                technique: firstCreatedArtworkMetadata.technique,
+                dimensions: firstCreatedArtworkMetadata.dimensions,
+                editionInfo: firstCreatedArtworkMetadata.edition_info,
+                plateType: firstCreatedArtworkMetadata.plate_material,
+                paperType: firstCreatedArtworkMetadata.paper_type,
+                inkType: firstCreatedArtworkMetadata.ink_type,
+                printingPress: firstCreatedArtworkMetadata.printing_press,
+                availability: firstCreatedArtworkMetadata.availability,
+                price: firstCreatedArtworkMetadata.price,
+                thumbnailUrl: `https://example.com/thumbnail_${firstCreatedArtwork.id}.jpg`
             });
         });
 

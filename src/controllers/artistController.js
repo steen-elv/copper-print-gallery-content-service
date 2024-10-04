@@ -1,4 +1,4 @@
-const { Gallery, Artwork, GalleryArtwork, Translation, Artist, Image } = require('../models');
+const { Gallery, Artwork, ArtworkMetadata, GalleryArtwork, Translation, Artist, Image } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 
@@ -547,6 +547,10 @@ exports.getArtistPrints = async (req, res, next) => {
             where,
             include: [
                 {
+                    model: ArtworkMetadata,
+                    required: true
+                },
+                {
                     model: Translation,
                     where: {
                         language_code: language,
@@ -560,28 +564,29 @@ exports.getArtistPrints = async (req, res, next) => {
                     required: false
                 }
             ],
-            order: [['created_at', 'DESC']],
+            order: [[ArtworkMetadata, 'year_created', 'DESC']],
             limit: Number(limit),
             offset: Number(offset),
             distinct: true,
             subQuery: false
         });
-
+console.log(rows);
         const prints = rows.map(artwork => ({
             id: artwork.id,
             title: artwork.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
             description: artwork.Translations.find(t => t.field_name === 'description')?.translated_content || '',
-            technique: artwork.technique,
-            plateType: artwork.plate_material, // Corrected from plate_type to plate_material
-            dimensions: artwork.dimensions,
-            year: artwork.year,
-            editionSize: artwork.edition_size,
-            editionNumber: artwork.edition_number,
-            paperType: artwork.paper_type,
-            inkType: artwork.ink_type,
-            printingPress: artwork.printing_press,
-            status: artwork.status,
-            artistNotes: artwork.artist_notes,
+            artistName: artwork.ArtworkMetadata.artist_name,
+            yearCreated: artwork.ArtworkMetadata.year_created,
+            medium: artwork.ArtworkMetadata.medium,
+            technique: artwork.ArtworkMetadata.technique,
+            dimensions: artwork.ArtworkMetadata.dimensions,
+            editionInfo: artwork.ArtworkMetadata.edition_info,
+            plateType: artwork.ArtworkMetadata.plate_material,
+            paperType: artwork.ArtworkMetadata.paper_type,
+            inkType: artwork.ArtworkMetadata.ink_type,
+            printingPress: artwork.ArtworkMetadata.printing_press,
+            availability: artwork.ArtworkMetadata.availability,
+            price: artwork.ArtworkMetadata.price,
             thumbnailUrl: artwork.Images[0]?.public_url || null,
             createdAt: artwork.created_at,
             updatedAt: artwork.updated_at
