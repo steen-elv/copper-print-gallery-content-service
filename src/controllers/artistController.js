@@ -548,7 +548,7 @@ exports.getArtistPrints = async (req, res, next) => {
             include: [
                 {
                     model: ArtworkMetadata,
-                    required: true
+                    required: false  // Change this to false to allow artworks without metadata
                 },
                 {
                     model: Translation,
@@ -571,26 +571,29 @@ exports.getArtistPrints = async (req, res, next) => {
             subQuery: false
         });
 
-        const prints = rows.map(artwork => ({
-            id: artwork.id,
-            title: artwork.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
-            description: artwork.Translations.find(t => t.field_name === 'description')?.translated_content || '',
-            artistName: artwork.ArtworkMetadata.artist_name,
-            yearCreated: artwork.ArtworkMetadata.year_created,
-            medium: artwork.ArtworkMetadata.medium,
-            technique: artwork.ArtworkMetadata.technique,
-            dimensions: artwork.ArtworkMetadata.dimensions,
-            editionInfo: artwork.ArtworkMetadata.edition_info,
-            plateType: artwork.ArtworkMetadata.plate_material,
-            paperType: artwork.ArtworkMetadata.paper_type,
-            inkType: artwork.ArtworkMetadata.ink_type,
-            printingPress: artwork.ArtworkMetadata.printing_press,
-            availability: artwork.ArtworkMetadata.availability,
-            price: artwork.ArtworkMetadata.price,
-            thumbnailUrl: artwork.Images[0]?.public_url || null,
-            createdAt: artwork.created_at,
-            updatedAt: artwork.updated_at
-        }));
+        const prints = rows.map(artwork => {
+            const metadata = artwork.ArtworkMetadata || {};
+            return {
+                id: artwork.id,
+                title: artwork.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
+                description: artwork.Translations.find(t => t.field_name === 'description')?.translated_content || '',
+                artistName: metadata.artist_name || artist.username,
+                yearCreated: metadata.year_created,
+                medium: metadata.medium,
+                technique: metadata.technique,
+                dimensions: metadata.dimensions,
+                editionInfo: metadata.edition_info,
+                plateType: metadata.plate_material,
+                paperType: metadata.paper_type,
+                inkType: metadata.ink_type,
+                printingPress: metadata.printing_press,
+                availability: metadata.availability,
+                price: metadata.price,
+                thumbnailUrl: artwork.Images[0]?.public_url || null,
+                createdAt: artwork.created_at,
+                updatedAt: artwork.updated_at
+            };
+        });
 
         res.json({
             prints,
@@ -599,7 +602,7 @@ exports.getArtistPrints = async (req, res, next) => {
             totalPages: Math.ceil(count / Number(limit))
         });
     } catch (error) {
-        console.error('Error in getPrint:', error);
+        console.error('Error in getArtistPrints:', error);
         next(error);
     }
 };

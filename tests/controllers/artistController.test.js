@@ -1047,7 +1047,7 @@ describe('Artist Controller', () => {
 
                 await ArtworkMetadata.create({
                     artwork_id: artwork.id,
-                    artist_name: i === 1 ? 'Pseudonym Artist' : testArtist.username, // Use a pseudonym for one artwork
+                    artist_name: i === 1 ? 'Pseudonym Artist' : testArtist.username,
                     year_created: 2023 - i,
                     medium: 'Printmaking',
                     technique: i % 2 === 0 ? 'Etching' : 'Aquatint',
