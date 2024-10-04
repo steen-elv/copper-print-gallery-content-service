@@ -465,3 +465,64 @@ exports.addPrintToGallery = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.removePrintFromGallery = async (req, res, next) => {
+    const transaction = await sequelize.transaction();
+    try {
+        const { galleryId, printId } = req.params;
+
+        const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
+        if (!artist) {
+            await transaction.rollback();
+            return res.status(404).json({ error: 'Artist not found' });
+        }
+
+        const gallery = await Gallery.findOne({
+            where: {
+                id: galleryId,
+                artist_id: artist.id
+            }
+        });
+
+        if (!gallery) {
+            await transaction.rollback();
+            return res.status(404).json({ error: 'Gallery not found' });
+        }
+
+        const galleryArtwork = await GalleryArtwork.findOne({
+            where: {
+                gallery_id: galleryId,
+                artwork_id: printId
+            }
+        });
+
+        if (!galleryArtwork) {
+            await transaction.rollback();
+            return res.status(404).json({ error: 'Print not found in the gallery' });
+        }
+
+        const removedOrder = galleryArtwork.order;
+
+        // Remove the print from the gallery
+        await galleryArtwork.destroy({ transaction });
+
+        // Update order of remaining prints
+        await GalleryArtwork.update(
+            { order: sequelize.literal('`order` - 1') },
+            {
+                where: {
+                    gallery_id: galleryId,
+                    order: { [Op.gt]: removedOrder }
+                },
+                transaction
+            }
+        );
+
+        await transaction.commit();
+        res.status(204).send();
+    } catch (error) {
+        console.error('Error in removePrintFromGallery', error);
+        await transaction.rollback();
+        next(error);
+    }
+};

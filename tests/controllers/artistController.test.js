@@ -29,6 +29,7 @@ app.put('/api/v1/artist/galleries/:galleryId', artistController.updateGallery);
 app.get('/api/v1/artist/galleries/:galleryId/prints', artistController.getGalleryPrints);
 app.put('/api/v1/artist/galleries/:galleryId/prints', artistController.updatePrintOrder);
 app.post('/api/v1/artist/galleries/:galleryId/prints/:printId', artistController.addPrintToGallery);
+app.delete('/api/v1/artist/galleries/:galleryId/prints/:printId', artistController.removePrintFromGallery);
 
 describe('Artist Controller', () => {
     let testArtist;
@@ -926,6 +927,94 @@ describe('Artist Controller', () => {
 
             expect(response.status).toBe(409);
             expect(response.body.error).toBe('Print already exists in the gallery');
+        });
+    });
+
+    describe('removePrintFromGallery', () => {
+        let testGallery;
+        let testArtworks;
+
+        beforeEach(async () => {
+            testGallery = await Gallery.create({
+                artist_id: testArtist.id,
+                status: 'published'
+            });
+
+            testArtworks = await Promise.all([
+                Artwork.create(),
+                Artwork.create(),
+                Artwork.create()
+            ]);
+
+            await Promise.all([
+                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[0].id, order: 1 }),
+                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[1].id, order: 2 }),
+                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[2].id, order: 3 })
+            ]);
+        });
+
+        it('should remove a print from the gallery successfully', async () => {
+            const response = await request(app)
+                .delete(`/api/v1/artist/galleries/${testGallery.id}/prints/${testArtworks[1].id}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(204);
+
+            // Verify the new order
+            const updatedGallery = await Gallery.findOne({
+                where: { id: testGallery.id },
+                include: [{
+                    model: Artwork,
+                    through: { attributes: ['order'] }
+                }],
+                order: [[Artwork, GalleryArtwork, 'order', 'ASC']]
+            });
+
+            expect(updatedGallery.Artworks).toHaveLength(2);
+            expect(updatedGallery.Artworks[0].id).toBe(testArtworks[0].id);
+            expect(updatedGallery.Artworks[0].GalleryArtwork.order).toBe(1);
+            expect(updatedGallery.Artworks[1].id).toBe(testArtworks[2].id);
+            expect(updatedGallery.Artworks[1].GalleryArtwork.order).toBe(2);
+        });
+
+        it('should return 404 if gallery is not found', async () => {
+            const response = await request(app)
+                .delete(`/api/v1/artist/galleries/99999/prints/${testArtworks[0].id}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            expect(response.body.error).toBe('Gallery not found');
+        });
+
+        it('should return 404 if print is not found in the gallery', async () => {
+            const nonExistentArtwork = await Artwork.create();
+            const response = await request(app)
+                .delete(`/api/v1/artist/galleries/${testGallery.id}/prints/${nonExistentArtwork.id}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            expect(response.body.error).toBe('Print not found in the gallery');
+        });
+
+        it('should not allow removal from a gallery owned by another artist', async () => {
+            const otherArtist = await Artist.create({
+                keycloak_id: 'other-artist-id',
+                username: 'otherartist',
+                email: 'other@example.com',
+                default_language: 'en'
+            });
+
+            const otherGallery = await Gallery.create({
+                artist_id: otherArtist.id,
+                status: 'published'
+            });
+
+            const response = await request(app)
+                .delete(`/api/v1/artist/galleries/${otherGallery.id}/prints/${testArtworks[0].id}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            expect(response.body.error).toBe('Gallery not found');
         });
     });
 });
