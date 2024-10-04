@@ -388,3 +388,80 @@ exports.updatePrintOrder = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.addPrintToGallery = async (req, res, next) => {
+    const transaction = await sequelize.transaction();
+    try {
+        const { galleryId, printId } = req.params;
+        const { order } = req.body;
+
+        const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
+        if (!artist) {
+            await transaction.rollback();
+            return res.status(404).json({ error: 'Artist not found' });
+        }
+
+        const gallery = await Gallery.findOne({
+            where: {
+                id: galleryId,
+                artist_id: artist.id
+            }
+        });
+
+        if (!gallery) {
+            await transaction.rollback();
+            return res.status(404).json({ error: 'Gallery not found' });
+        }
+
+        const artwork = await Artwork.findByPk(printId);
+        if (!artwork) {
+            await transaction.rollback();
+            return res.status(404).json({ error: 'Print not found' });
+        }
+
+        const existingGalleryArtwork = await GalleryArtwork.findOne({
+            where: {
+                gallery_id: galleryId,
+                artwork_id: printId
+            }
+        });
+
+        if (existingGalleryArtwork) {
+            await transaction.rollback();
+            return res.status(409).json({ error: 'Print already exists in the gallery' });
+        }
+
+        // Update order of existing prints if necessary
+        if (order) {
+            await GalleryArtwork.update(
+                { order: sequelize.literal('`order` + 1') },
+                {
+                    where: {
+                        gallery_id: galleryId,
+                        order: { [Op.gte]: order }
+                    },
+                    transaction
+                }
+            );
+        }
+
+        // Add the new print to the gallery
+        const maxOrder = await GalleryArtwork.max('order', {
+            where: { gallery_id: galleryId }
+        });
+        const newOrder = order || (maxOrder ? maxOrder + 1 : 1);
+
+        await GalleryArtwork.create({
+            gallery_id: galleryId,
+            artwork_id: printId,
+            order: newOrder
+        }, { transaction });
+
+        await transaction.commit();
+        res.status(201).json({ message: 'Print added to gallery successfully' });
+    } catch (error) {
+        console.log('Error in addPrintToGallery', error);
+        await transaction.rollback();
+        next(error);
+    }
+};

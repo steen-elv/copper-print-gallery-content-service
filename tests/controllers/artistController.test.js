@@ -28,7 +28,7 @@ app.get('/api/v1/artist/galleries/:galleryId', artistController.getGallery);
 app.put('/api/v1/artist/galleries/:galleryId', artistController.updateGallery);
 app.get('/api/v1/artist/galleries/:galleryId/prints', artistController.getGalleryPrints);
 app.put('/api/v1/artist/galleries/:galleryId/prints', artistController.updatePrintOrder);
-
+app.post('/api/v1/artist/galleries/:galleryId/prints/:printId', artistController.addPrintToGallery);
 
 describe('Artist Controller', () => {
     let testArtist;
@@ -821,6 +821,111 @@ describe('Artist Controller', () => {
 
             expect(response.status).toBe(400);
             expect(response.body.error).toBe(`Print with ID ${invalidArtwork.id} does not belong to this gallery`);
+        });
+    });
+
+    describe('addPrintToGallery', () => {
+        let testGallery;
+        let testArtworks;
+        let newArtwork;
+
+        beforeEach(async () => {
+            testGallery = await Gallery.create({
+                artist_id: testArtist.id,
+                status: 'published'
+            });
+
+            testArtworks = await Promise.all([
+                Artwork.create(),
+                Artwork.create(),
+                Artwork.create()
+            ]);
+
+            await Promise.all([
+                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[0].id, order: 1 }),
+                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[1].id, order: 2 }),
+                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[2].id, order: 3 })
+            ]);
+
+            newArtwork = await Artwork.create();
+        });
+
+        it('should add a print to the gallery successfully', async () => {
+            const response = await request(app)
+                .post(`/api/v1/artist/galleries/${testGallery.id}/prints/${newArtwork.id}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ order: 2 });
+
+            expect(response.status).toBe(201);
+            expect(response.body.message).toBe('Print added to gallery successfully');
+
+            // Verify the new order
+            const updatedGallery = await Gallery.findOne({
+                where: { id: testGallery.id },
+                include: [{
+                    model: Artwork,
+                    through: { attributes: ['order'] }
+                }],
+                order: [[Artwork, GalleryArtwork, 'order', 'ASC']]
+            });
+
+            expect(updatedGallery.Artworks).toHaveLength(4);
+            expect(updatedGallery.Artworks[0].id).toBe(testArtworks[0].id);
+            expect(updatedGallery.Artworks[1].id).toBe(newArtwork.id);
+            expect(updatedGallery.Artworks[2].id).toBe(testArtworks[1].id);
+            expect(updatedGallery.Artworks[3].id).toBe(testArtworks[2].id);
+        });
+
+        it('should add a print to the end if no order is specified', async () => {
+            const response = await request(app)
+                .post(`/api/v1/artist/galleries/${testGallery.id}/prints/${newArtwork.id}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({});
+
+            expect(response.status).toBe(201);
+
+            const updatedGallery = await Gallery.findOne({
+                where: { id: testGallery.id },
+                include: [{
+                    model: Artwork,
+                    through: { attributes: ['order'] }
+                }],
+                order: [[Artwork, GalleryArtwork, 'order', 'ASC']]
+            });
+
+            expect(updatedGallery.Artworks).toHaveLength(4);
+            expect(updatedGallery.Artworks[3].id).toBe(newArtwork.id);
+            expect(updatedGallery.Artworks[3].GalleryArtwork.order).toBe(4);
+        });
+
+        it('should return 404 if gallery is not found', async () => {
+            const response = await request(app)
+                .post(`/api/v1/artist/galleries/99999/prints/${newArtwork.id}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ order: 1 });
+
+            expect(response.status).toBe(404);
+            expect(response.body.error).toBe('Gallery not found');
+        });
+
+        it('should return 404 if print is not found', async () => {
+            const response = await request(app)
+                .post(`/api/v1/artist/galleries/${testGallery.id}/prints/99999`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ order: 1 });
+
+            expect(response.status).toBe(404);
+            expect(response.body.error).toBe('Print not found');
+        });
+
+        it('should return 409 if print already exists in the gallery', async () => {
+            const response = await request(app)
+                .post(`/api/v1/artist/galleries/${testGallery.id}/prints/${testArtworks[0].id}`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ order: 1 });
+
+            expect(response.status).toBe(409);
+            expect(response.body.error).toBe('Print already exists in the gallery');
         });
     });
 });
