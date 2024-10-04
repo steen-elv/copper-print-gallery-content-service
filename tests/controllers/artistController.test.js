@@ -1069,8 +1069,16 @@ describe('Artist Controller', () => {
                 }),
                 Image.create({
                     artwork_id: artwork.id,
+                    original_filename: `original_${artwork.id}.jpg`,
+                    storage_bucket: 'test-bucket',
+                    storage_path: `/artworks/${artwork.id}/thumbnail.jpg`,
+                    public_url: `https://example.com/thumbnail_${artwork.id}.jpg`,
+                    width: 200,
+                    height: 200,
+                    format: 'image/jpeg',
+                    file_size: 1024 * 10, // 10KB
                     version: 'thumbnail',
-                    public_url: `https://example.com/thumbnail_${artwork.id}.jpg`
+                    status: 'processed'
                 })
             ]));
         });
