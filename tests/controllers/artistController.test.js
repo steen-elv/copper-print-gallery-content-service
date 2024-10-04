@@ -1145,16 +1145,52 @@ describe('Artist Controller', () => {
         });
 
         it('should handle pagination correctly', async () => {
+            // Create more artworks to test pagination
+            for (let i = 0; i < 5; i++) {
+                const artwork = await Artwork.create({ artist_id: testArtist.id });
+                await ArtworkMetadata.create({
+                    artwork_id: artwork.id,
+                    artist_name: testArtist.username,
+                    year_created: 2023 - i,
+                    medium: 'Printmaking',
+                    technique: i % 2 === 0 ? 'Etching' : 'Aquatint',
+                    dimensions: `${20 + i}x${30 + i}cm`,
+                    edition_info: `Edition of ${50 + i}`,
+                    plate_material: i % 2 === 0 ? 'Copper' : 'Zinc',
+                    paper_type: i % 2 === 0 ? 'Cotton' : 'Rice',
+                    ink_type: i % 2 === 0 ? 'Oil-based' : 'Water-based',
+                    printing_press: `Press ${i + 1}`,
+                    availability: i % 2 === 0 ? 'Available' : 'Sold',
+                    price: 1000 + (i * 100)
+                });
+            }
+
             const response = await request(app)
                 .get('/api/v1/artist/prints')
-                .query({page: 1, limit: 2})
+                .query({ page: 1, limit: 2 })
                 .set('Authorization', `Bearer ${validToken}`);
 
             expect(response.status).toBe(200);
             expect(response.body.prints).toHaveLength(2);
-            expect(response.body.totalCount).toBe(3);
+            expect(response.body.totalCount).toBe(8); // 3 original + 5 new artworks
             expect(response.body.currentPage).toBe(1);
-            expect(response.body.totalPages).toBe(2);
+            expect(response.body.totalPages).toBe(4);
+
+            const secondPageResponse = await request(app)
+                .get('/api/v1/artist/prints')
+                .query({ page: 2, limit: 2 })
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(secondPageResponse.status).toBe(200);
+            expect(secondPageResponse.body.prints).toHaveLength(2);
+            expect(secondPageResponse.body.totalCount).toBe(8);
+            expect(secondPageResponse.body.currentPage).toBe(2);
+            expect(secondPageResponse.body.totalPages).toBe(4);
+
+            // Ensure the artworks on the second page are different from the first page
+            const firstPageIds = response.body.prints.map(p => p.id);
+            const secondPageIds = secondPageResponse.body.prints.map(p => p.id);
+            expect(firstPageIds).not.toEqual(expect.arrayContaining(secondPageIds));
         });
 
         it('should filter prints correctly', async () => {
