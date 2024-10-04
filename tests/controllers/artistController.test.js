@@ -55,7 +55,7 @@ describe('Artist Controller', () => {
             default_language: 'en'
         });
 
-        validToken = jwt.sign({ sub: 'test-keycloak-id' }, 'any-secret-will-do');
+        validToken = jwt.sign({sub: 'test-keycloak-id'}, 'any-secret-will-do');
     });
 
     afterAll(async () => {
@@ -353,7 +353,7 @@ describe('Artist Controller', () => {
             const response = await request(app)
                 .post('/api/v1/artist/galleries')
                 .set('Authorization', `Bearer ${validToken}`)
-                .query({ language: 'da' })
+                .query({language: 'da'})
                 .send(newGallery);
 
             expect(response.status).toBe(201);
@@ -389,7 +389,7 @@ describe('Artist Controller', () => {
             });
 
             const artwork = await Artwork.create();
-            await GalleryArtwork.create({ gallery_id: gallery.id, artwork_id: artwork.id, order: 1 });
+            await GalleryArtwork.create({gallery_id: gallery.id, artwork_id: artwork.id, order: 1});
 
             const response = await request(app)
                 .get(`/api/v1/artist/galleries/${gallery.id}`)
@@ -413,7 +413,7 @@ describe('Artist Controller', () => {
                 .set('Authorization', `Bearer ${validToken}`);
 
             expect(response.status).toBe(404);
-            expect(response.body).toEqual({ error: 'Gallery not found' });
+            expect(response.body).toEqual({error: 'Gallery not found'});
         });
 
         it('should return 404 if gallery belongs to another artist', async () => {
@@ -434,7 +434,7 @@ describe('Artist Controller', () => {
                 .set('Authorization', `Bearer ${validToken}`);
 
             expect(response.status).toBe(404);
-            expect(response.body).toEqual({ error: 'Gallery not found' });
+            expect(response.body).toEqual({error: 'Gallery not found'});
         });
     });
 
@@ -445,7 +445,7 @@ describe('Artist Controller', () => {
                 .set('Authorization', 'InvalidToken');
 
             expect(response.status).toBe(400);
-            expect(response.body).toEqual({ error: 'Invalid token format' });
+            expect(response.body).toEqual({error: 'Invalid token format'});
         });
 
         it('should return 400 if the token is invalid', async () => {
@@ -454,7 +454,7 @@ describe('Artist Controller', () => {
                 .set('Authorization', 'Bearer invalidtoken');
 
             expect(response.status).toBe(400);
-            expect(response.body).toEqual({ error: 'Invalid token' });
+            expect(response.body).toEqual({error: 'Invalid token'});
         });
 
         it('should return 401 if no token is provided', async () => {
@@ -462,7 +462,7 @@ describe('Artist Controller', () => {
                 .get('/api/v1/artist/galleries');
 
             expect(response.status).toBe(401);
-            expect(response.body).toEqual({ error: 'Authorization header missing' });
+            expect(response.body).toEqual({error: 'Authorization header missing'});
         });
     });
 
@@ -516,7 +516,7 @@ describe('Artist Controller', () => {
             const updatedGallery = await Gallery.findByPk(testGallery.id, {
                 include: [{
                     model: Translation,
-                    where: { language_code: 'en' },
+                    where: {language_code: 'en'},
                     required: false
                 }]
             });
@@ -533,17 +533,17 @@ describe('Artist Controller', () => {
             const response = await request(app)
                 .put('/api/v1/artist/galleries/99999')
                 .set('Authorization', `Bearer ${validToken}`)
-                .send({ title: 'New Title' });
+                .send({title: 'New Title'});
 
             expect(response.status).toBe(404);
-            expect(response.body).toEqual({ error: 'Gallery not found' });
+            expect(response.body).toEqual({error: 'Gallery not found'});
         });
 
         it('should only update provided fields', async () => {
             const response = await request(app)
                 .put(`/api/v1/artist/galleries/${testGallery.id}`)
                 .set('Authorization', `Bearer ${validToken}`)
-                .send({ title: 'New Title' });
+                .send({title: 'New Title'});
 
             expect(response.status).toBe(200);
             expect(response.body.title).toBe('New Title');
@@ -555,18 +555,18 @@ describe('Artist Controller', () => {
             await request(app)
                 .put(`/api/v1/artist/galleries/${testGallery.id}`)
                 .set('Authorization', `Bearer ${validToken}`)
-                .query({ language: 'da' })
-                .send({ title: 'Dansk Titel', description: 'Dansk Beskrivelse' });
+                .query({language: 'da'})
+                .send({title: 'Dansk Titel', description: 'Dansk Beskrivelse'});
 
             const responseEn = await request(app)
                 .get(`/api/v1/artist/galleries/${testGallery.id}`)
                 .set('Authorization', `Bearer ${validToken}`)
-                .query({ language: 'en' });
+                .query({language: 'en'});
 
             const responseDa = await request(app)
                 .get(`/api/v1/artist/galleries/${testGallery.id}`)
                 .set('Authorization', `Bearer ${validToken}`)
-                .query({ language: 'da' });
+                .query({language: 'da'});
 
             expect(responseEn.body.title).toBe('Original Title');
             expect(responseDa.body.title).toBe('Dansk Titel');
@@ -598,7 +598,7 @@ describe('Artist Controller', () => {
             const response = await request(app)
                 .put(`/api/v1/artist/galleries/${testGallery.id}`)
                 .set('Authorization', `Bearer ${validToken}`)
-                .query({ language: 'da' })
+                .query({language: 'da'})
                 .send(updatedDetails);
 
             expect(response.status).toBe(200);
@@ -608,7 +608,7 @@ describe('Artist Controller', () => {
             const englishResponse = await request(app)
                 .get(`/api/v1/artist/galleries/${testGallery.id}`)
                 .set('Authorization', `Bearer ${validToken}`)
-                .query({ language: 'en' });
+                .query({language: 'en'});
 
             expect(englishResponse.body.title).toBe('Original Title');
             expect(englishResponse.body.description).toBe('Original Description');
@@ -632,9 +632,9 @@ describe('Artist Controller', () => {
             ]);
 
             await Promise.all([
-                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[0].id, order: 2 }),
-                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[1].id, order: 1 }),
-                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[2].id, order: 3 })
+                GalleryArtwork.create({gallery_id: testGallery.id, artwork_id: testArtworks[0].id, order: 2}),
+                GalleryArtwork.create({gallery_id: testGallery.id, artwork_id: testArtworks[1].id, order: 1}),
+                GalleryArtwork.create({gallery_id: testGallery.id, artwork_id: testArtworks[2].id, order: 3})
             ]);
 
             await Promise.all(testArtworks.map((artwork, index) =>
@@ -691,7 +691,7 @@ describe('Artist Controller', () => {
         it('should handle pagination correctly', async () => {
             const response = await request(app)
                 .get(`/api/v1/artist/galleries/${testGallery.id}/prints`)
-                .query({ page: 1, limit: 2 })
+                .query({page: 1, limit: 2})
                 .set('Authorization', `Bearer ${validToken}`);
 
             expect(response.status).toBe(200);
@@ -707,7 +707,7 @@ describe('Artist Controller', () => {
             // Check the second page
             const secondPageResponse = await request(app)
                 .get(`/api/v1/artist/galleries/${testGallery.id}/prints`)
-                .query({ page: 2, limit: 2 })
+                .query({page: 2, limit: 2})
                 .set('Authorization', `Bearer ${validToken}`);
 
             expect(secondPageResponse.status).toBe(200);
@@ -721,7 +721,7 @@ describe('Artist Controller', () => {
                 .set('Authorization', `Bearer ${validToken}`);
 
             expect(response.status).toBe(404);
-            expect(response.body).toEqual({ error: 'Gallery not found' });
+            expect(response.body).toEqual({error: 'Gallery not found'});
         });
 
         it('should return 404 if gallery belongs to another artist', async () => {
@@ -742,7 +742,7 @@ describe('Artist Controller', () => {
                 .set('Authorization', `Bearer ${validToken}`);
 
             expect(response.status).toBe(404);
-            expect(response.body).toEqual({ error: 'Gallery not found' });
+            expect(response.body).toEqual({error: 'Gallery not found'});
         });
     });
 
@@ -763,33 +763,33 @@ describe('Artist Controller', () => {
             ]);
 
             await Promise.all([
-                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[0].id, order: 1 }),
-                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[1].id, order: 2 }),
-                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[2].id, order: 3 })
+                GalleryArtwork.create({gallery_id: testGallery.id, artwork_id: testArtworks[0].id, order: 1}),
+                GalleryArtwork.create({gallery_id: testGallery.id, artwork_id: testArtworks[1].id, order: 2}),
+                GalleryArtwork.create({gallery_id: testGallery.id, artwork_id: testArtworks[2].id, order: 3})
             ]);
         });
 
         it('should update print order successfully', async () => {
             const newOrder = [
-                { printId: testArtworks[2].id, newOrder: 1 },
-                { printId: testArtworks[0].id, newOrder: 2 },
-                { printId: testArtworks[1].id, newOrder: 3 }
+                {printId: testArtworks[2].id, newOrder: 1},
+                {printId: testArtworks[0].id, newOrder: 2},
+                {printId: testArtworks[1].id, newOrder: 3}
             ];
 
             const response = await request(app)
                 .put(`/api/v1/artist/galleries/${testGallery.id}/prints`)
                 .set('Authorization', `Bearer ${validToken}`)
-                .send({ printOrders: newOrder });
+                .send({printOrders: newOrder});
 
             expect(response.status).toBe(200);
             expect(response.body.message).toBe('Print order updated successfully');
 
             // Verify the new order
             const updatedGallery = await Gallery.findOne({
-                where: { id: testGallery.id },
+                where: {id: testGallery.id},
                 include: [{
                     model: Artwork,
-                    through: { attributes: ['order'] }
+                    through: {attributes: ['order']}
                 }],
                 order: [[Artwork, GalleryArtwork, 'order', 'ASC']]
             });
@@ -803,7 +803,7 @@ describe('Artist Controller', () => {
             const response = await request(app)
                 .put('/api/v1/artist/galleries/99999/prints')
                 .set('Authorization', `Bearer ${validToken}`)
-                .send({ printOrders: [] });
+                .send({printOrders: []});
 
             expect(response.status).toBe(404);
             expect(response.body.error).toBe('Gallery not found');
@@ -812,14 +812,14 @@ describe('Artist Controller', () => {
         it('should return 400 if a print does not belong to the gallery', async () => {
             const invalidArtwork = await Artwork.create();
             const newOrder = [
-                { printId: invalidArtwork.id, newOrder: 1 },
-                { printId: testArtworks[0].id, newOrder: 2 }
+                {printId: invalidArtwork.id, newOrder: 1},
+                {printId: testArtworks[0].id, newOrder: 2}
             ];
 
             const response = await request(app)
                 .put(`/api/v1/artist/galleries/${testGallery.id}/prints`)
                 .set('Authorization', `Bearer ${validToken}`)
-                .send({ printOrders: newOrder });
+                .send({printOrders: newOrder});
 
             expect(response.status).toBe(400);
             expect(response.body.error).toBe(`Print with ID ${invalidArtwork.id} does not belong to this gallery`);
@@ -844,9 +844,9 @@ describe('Artist Controller', () => {
             ]);
 
             await Promise.all([
-                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[0].id, order: 1 }),
-                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[1].id, order: 2 }),
-                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[2].id, order: 3 })
+                GalleryArtwork.create({gallery_id: testGallery.id, artwork_id: testArtworks[0].id, order: 1}),
+                GalleryArtwork.create({gallery_id: testGallery.id, artwork_id: testArtworks[1].id, order: 2}),
+                GalleryArtwork.create({gallery_id: testGallery.id, artwork_id: testArtworks[2].id, order: 3})
             ]);
 
             newArtwork = await Artwork.create();
@@ -856,17 +856,17 @@ describe('Artist Controller', () => {
             const response = await request(app)
                 .post(`/api/v1/artist/galleries/${testGallery.id}/prints/${newArtwork.id}`)
                 .set('Authorization', `Bearer ${validToken}`)
-                .send({ order: 2 });
+                .send({order: 2});
 
             expect(response.status).toBe(201);
             expect(response.body.message).toBe('Print added to gallery successfully');
 
             // Verify the new order
             const updatedGallery = await Gallery.findOne({
-                where: { id: testGallery.id },
+                where: {id: testGallery.id},
                 include: [{
                     model: Artwork,
-                    through: { attributes: ['order'] }
+                    through: {attributes: ['order']}
                 }],
                 order: [[Artwork, GalleryArtwork, 'order', 'ASC']]
             });
@@ -887,10 +887,10 @@ describe('Artist Controller', () => {
             expect(response.status).toBe(201);
 
             const updatedGallery = await Gallery.findOne({
-                where: { id: testGallery.id },
+                where: {id: testGallery.id},
                 include: [{
                     model: Artwork,
-                    through: { attributes: ['order'] }
+                    through: {attributes: ['order']}
                 }],
                 order: [[Artwork, GalleryArtwork, 'order', 'ASC']]
             });
@@ -904,7 +904,7 @@ describe('Artist Controller', () => {
             const response = await request(app)
                 .post(`/api/v1/artist/galleries/99999/prints/${newArtwork.id}`)
                 .set('Authorization', `Bearer ${validToken}`)
-                .send({ order: 1 });
+                .send({order: 1});
 
             expect(response.status).toBe(404);
             expect(response.body.error).toBe('Gallery not found');
@@ -914,7 +914,7 @@ describe('Artist Controller', () => {
             const response = await request(app)
                 .post(`/api/v1/artist/galleries/${testGallery.id}/prints/99999`)
                 .set('Authorization', `Bearer ${validToken}`)
-                .send({ order: 1 });
+                .send({order: 1});
 
             expect(response.status).toBe(404);
             expect(response.body.error).toBe('Print not found');
@@ -924,7 +924,7 @@ describe('Artist Controller', () => {
             const response = await request(app)
                 .post(`/api/v1/artist/galleries/${testGallery.id}/prints/${testArtworks[0].id}`)
                 .set('Authorization', `Bearer ${validToken}`)
-                .send({ order: 1 });
+                .send({order: 1});
 
             expect(response.status).toBe(409);
             expect(response.body.error).toBe('Print already exists in the gallery');
@@ -948,9 +948,9 @@ describe('Artist Controller', () => {
             ]);
 
             await Promise.all([
-                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[0].id, order: 1 }),
-                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[1].id, order: 2 }),
-                GalleryArtwork.create({ gallery_id: testGallery.id, artwork_id: testArtworks[2].id, order: 3 })
+                GalleryArtwork.create({gallery_id: testGallery.id, artwork_id: testArtworks[0].id, order: 1}),
+                GalleryArtwork.create({gallery_id: testGallery.id, artwork_id: testArtworks[1].id, order: 2}),
+                GalleryArtwork.create({gallery_id: testGallery.id, artwork_id: testArtworks[2].id, order: 3})
             ]);
         });
 
@@ -963,10 +963,10 @@ describe('Artist Controller', () => {
 
             // Verify the new order
             const updatedGallery = await Gallery.findOne({
-                where: { id: testGallery.id },
+                where: {id: testGallery.id},
                 include: [{
                     model: Artwork,
-                    through: { attributes: ['order'] }
+                    through: {attributes: ['order']}
                 }],
                 order: [[Artwork, GalleryArtwork, 'order', 'ASC']]
             });
@@ -1023,9 +1023,9 @@ describe('Artist Controller', () => {
         let artworks;
 
         beforeEach(async () => {
-            await Artwork.destroy({ where: {} });
-            await Translation.destroy({ where: {} });
-            await Image.destroy({ where: {} });
+            await Artwork.destroy({where: {}});
+            await Translation.destroy({where: {}});
+            await Image.destroy({where: {}});
 
             artworks = await Promise.all([
                 Artwork.create({
@@ -1096,22 +1096,26 @@ describe('Artist Controller', () => {
             expect(response.body.currentPage).toBe(1);
             expect(response.body.totalPages).toBe(1);
 
+            console.log(JSON.stringify(response.body.prints));
+            // The prints should be ordered by created_at DESC, so the last created artwork should be first
+            const lastCreatedArtwork = artworks[artworks.length - 1];
             expect(response.body.prints[0]).toMatchObject({
-                title: `Artwork ${artworks[2].id} Title`,
-                description: `Artwork ${artworks[2].id} Description`,
-                technique: 'Etching',
-                plateType: 'Copper',
-                year: 2023,
-                paperType: 'Cotton',
-                status: 'published',
-                thumbnailUrl: 'https://example.com/thumbnail_${artworks[2].id}.jpg'
+                id: lastCreatedArtwork.id,
+                title: `Artwork ${lastCreatedArtwork.id} Title`,
+                description: `Artwork ${lastCreatedArtwork.id} Description`,
+                technique: lastCreatedArtwork.technique,
+                plateType: lastCreatedArtwork.plate_type,
+                year: lastCreatedArtwork.year,
+                paperType: lastCreatedArtwork.paper_type,
+                status: lastCreatedArtwork.status,
+                thumbnailUrl: `https://example.com/thumbnail_${lastCreatedArtwork.id}.jpg`
             });
         });
 
         it('should handle pagination correctly', async () => {
             const response = await request(app)
                 .get('/api/v1/artist/prints')
-                .query({ page: 1, limit: 2 })
+                .query({page: 1, limit: 2})
                 .set('Authorization', `Bearer ${validToken}`);
 
             expect(response.status).toBe(200);
@@ -1119,12 +1123,12 @@ describe('Artist Controller', () => {
             expect(response.body.totalCount).toBe(3);
             expect(response.body.currentPage).toBe(1);
             expect(response.body.totalPages).toBe(2);
-            });
+        });
 
         it('should filter prints correctly', async () => {
             const response = await request(app)
                 .get('/api/v1/artist/prints')
-                .query({ technique: 'Aquatint', year: 2022 })
+                .query({technique: 'Aquatint', year: 2022})
                 .set('Authorization', `Bearer ${validToken}`);
 
             expect(response.status).toBe(200);
@@ -1134,7 +1138,7 @@ describe('Artist Controller', () => {
         });
 
         it('should return 404 if artist is not found', async () => {
-            const invalidToken = jwt.sign({ sub: 'invalid-id' }, 'test-secret');
+            const invalidToken = jwt.sign({sub: 'invalid-id'}, 'test-secret');
             const response = await request(app)
                 .get('/api/v1/artist/prints')
                 .set('Authorization', `Bearer ${invalidToken}`);
