@@ -526,3 +526,72 @@ exports.removePrintFromGallery = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.getArtistPrints = async (req, res, next) => {
+    try {
+        const { page = 1, limit = 20, language = 'en', technique, year, plateType, paperType } = req.query;
+        const offset = (page - 1) * limit;
+
+        const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
+        if (!artist) {
+            return res.status(404).json({ error: 'Artist not found' });
+        }
+
+        const where = { artist_id: artist.id };
+        if (technique) where.technique = technique;
+        if (year) where.year = year;
+        if (plateType) where.plate_type = plateType;
+        if (paperType) where.paper_type = paperType;
+
+        const { count, rows } = await Artwork.findAndCountAll({
+            where,
+            include: [
+                {
+                    model: Translation,
+                    where: {
+                        language_code: language,
+                        field_name: { [Op.in]: ['title', 'description'] }
+                    },
+                    required: false
+                },
+                {
+                    model: Image,
+                    where: { version: 'thumbnail' },
+                    required: false
+                }
+            ],
+            order: [['created_at', 'DESC']],
+            limit: Number(limit),
+            offset: Number(offset)
+        });
+
+        const prints = rows.map(artwork => ({
+            id: artwork.id,
+            title: artwork.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
+            description: artwork.Translations.find(t => t.field_name === 'description')?.translated_content || '',
+            technique: artwork.technique,
+            plateType: artwork.plate_type,
+            dimensions: artwork.dimensions,
+            year: artwork.year,
+            editionSize: artwork.edition_size,
+            editionNumber: artwork.edition_number,
+            paperType: artwork.paper_type,
+            inkType: artwork.ink_type,
+            printingPress: artwork.printing_press,
+            status: artwork.status,
+            artistNotes: artwork.artist_notes,
+            thumbnailUrl: artwork.Images[0]?.public_url || null,
+            createdAt: artwork.created_at,
+            updatedAt: artwork.updated_at
+        }));
+
+        res.json({
+            prints,
+            totalCount: count,
+            currentPage: Number(page),
+            totalPages: Math.ceil(count / Number(limit))
+        });
+    } catch (error) {
+        next(error);
+    }
+};

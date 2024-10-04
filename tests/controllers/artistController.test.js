@@ -30,6 +30,7 @@ app.get('/api/v1/artist/galleries/:galleryId/prints', artistController.getGaller
 app.put('/api/v1/artist/galleries/:galleryId/prints', artistController.updatePrintOrder);
 app.post('/api/v1/artist/galleries/:galleryId/prints/:printId', artistController.addPrintToGallery);
 app.delete('/api/v1/artist/galleries/:galleryId/prints/:printId', artistController.removePrintFromGallery);
+app.get('/api/v1/artist/prints', artistController.getArtistPrints);
 
 describe('Artist Controller', () => {
     let testArtist;
@@ -1015,6 +1016,121 @@ describe('Artist Controller', () => {
 
             expect(response.status).toBe(404);
             expect(response.body.error).toBe('Gallery not found');
+        });
+    });
+
+    describe('getArtistPrints', () => {
+        beforeEach(async () => {
+            await Artwork.destroy({ where: {} });
+            await Translation.destroy({ where: {} });
+            await Image.destroy({ where: {} });
+
+            const artworks = await Promise.all([
+                Artwork.create({
+                    artist_id: testArtist.id,
+                    technique: 'Etching',
+                    plate_type: 'Copper',
+                    year: 2023,
+                    paper_type: 'Cotton',
+                    status: 'published'
+                }),
+                Artwork.create({
+                    artist_id: testArtist.id,
+                    technique: 'Aquatint',
+                    plate_type: 'Zinc',
+                    year: 2022,
+                    paper_type: 'Rice',
+                    status: 'draft'
+                }),
+                Artwork.create({
+                    artist_id: testArtist.id,
+                    technique: 'Etching',
+                    plate_type: 'Copper',
+                    year: 2023,
+                    paper_type: 'Cotton',
+                    status: 'published'
+                })
+            ]);
+
+            await Promise.all(artworks.flatMap(artwork => [
+                Translation.create({
+                    entity_id: artwork.id,
+                    entity_type: 'Artwork',
+                    field_name: 'title',
+                    translated_content: `Artwork ${artwork.id} Title`,
+                    language_code: 'en'
+                }),
+                Translation.create({
+                    entity_id: artwork.id,
+                    entity_type: 'Artwork',
+                    field_name: 'description',
+                    translated_content: `Artwork ${artwork.id} Description`,
+                    language_code: 'en'
+                }),
+                Image.create({
+                    artwork_id: artwork.id,
+                    version: 'thumbnail',
+                    public_url: `https://example.com/thumbnail_${artwork.id}.jpg`
+                })
+            ]));
+        });
+
+        it('should return all prints for the authenticated artist', async () => {
+            const response = await request(app)
+                .get('/api/v1/artist/prints')
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.prints).toHaveLength(3);
+            expect(response.body.totalCount).toBe(3);
+            expect(response.body.currentPage).toBe(1);
+            expect(response.body.totalPages).toBe(1);
+
+            expect(response.body.prints[0]).toMatchObject({
+                title: 'Artwork 3 Title',
+                description: 'Artwork 3 Description',
+                technique: 'Etching',
+                plateType: 'Copper',
+                year: 2023,
+                paperType: 'Cotton',
+                status: 'published',
+                thumbnailUrl: 'https://example.com/thumbnail_3.jpg'
+            });
+        });
+
+        it('should handle pagination correctly', async () => {
+            const response = await request(app)
+                .get('/api/v1/artist/prints')
+                .query({ page: 1, limit: 2 })
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.prints).toHaveLength(2);
+            expect(response.body.totalCount).toBe(3);
+            expect(response.body.currentPage).toBe(1);
+            expect(response.body.totalPages).toBe(2);
+        });
+
+        it('should filter prints correctly', async () => {
+            const response = await request(app)
+                .get('/api/v1/artist/prints')
+                .query({ technique: 'Aquatint', year: 2022 })
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.prints).toHaveLength(1);
+            expect(response.body.prints[0].technique).toBe('Aquatint');
+            expect(response.body.prints[0].year).toBe(2022);
+        });
+
+        it('should return 404 if artist is not found', async () => {
+            const invalidToken = jwt.sign({ sub: 'invalid-id' }, 'test-secret');
+            const response = await request(app)
+                .get('/api/v1/artist/prints')
+                .set('Authorization', `Bearer ${invalidToken}`);
+
+            expect(response.status).toBe(404);
+            expect(response.body.error).toBe('Artist not found');
         });
     });
 });
