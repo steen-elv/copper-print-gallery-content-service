@@ -1032,10 +1032,16 @@ describe('Artist Controller', () => {
                 const artwork = await Artwork.create({
                     artist_id: testArtist.id,
                     technique: i % 2 === 0 ? 'Etching' : 'Aquatint',
-                    plate_type: i % 2 === 0 ? 'Copper' : 'Zinc',
+                    plate_material: i % 2 === 0 ? 'Copper' : 'Zinc',
                     year: 2023 - i,
                     paper_type: i % 2 === 0 ? 'Cotton' : 'Rice',
-                    status: i % 2 === 0 ? 'published' : 'draft'
+                    status: i % 2 === 0 ? 'published' : 'draft',
+                    dimensions: `${20 + i}x${30 + i}cm`,
+                    edition_size: 50 + i,
+                    edition_number: i + 1,
+                    ink_type: i % 2 === 0 ? 'Oil-based' : 'Water-based',
+                    printing_press: `Press ${i + 1}`,
+                    artist_notes: `Notes for artwork ${i + 1}`
                 });
                 artworks.push(artwork);
 
@@ -1062,7 +1068,7 @@ describe('Artist Controller', () => {
                     width: 200,
                     height: 200,
                     format: 'image/jpeg',
-                    file_size: 1024 * 10, // 10KB
+                    file_size: 1024 * 10,
                     version: 'thumbnail',
                     status: 'processed'
                 });
@@ -1090,10 +1096,16 @@ describe('Artist Controller', () => {
                 title: `Artwork ${lastCreatedArtwork.id} Title`,
                 description: `Artwork ${lastCreatedArtwork.id} Description`,
                 technique: lastCreatedArtwork.technique,
-                plateType: lastCreatedArtwork.plate_type,
+                plateType: lastCreatedArtwork.plate_material,
                 year: lastCreatedArtwork.year,
                 paperType: lastCreatedArtwork.paper_type,
                 status: lastCreatedArtwork.status,
+                dimensions: lastCreatedArtwork.dimensions,
+                editionSize: lastCreatedArtwork.edition_size,
+                editionNumber: lastCreatedArtwork.edition_number,
+                inkType: lastCreatedArtwork.ink_type,
+                printingPress: lastCreatedArtwork.printing_press,
+                artistNotes: lastCreatedArtwork.artist_notes,
                 thumbnailUrl: `https://example.com/thumbnail_${lastCreatedArtwork.id}.jpg`
             });
         });

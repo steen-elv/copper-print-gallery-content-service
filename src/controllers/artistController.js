@@ -540,7 +540,7 @@ exports.getArtistPrints = async (req, res, next) => {
         const where = { artist_id: artist.id };
         if (technique) where.technique = technique;
         if (year) where.year = year;
-        if (plateType) where.plate_type = plateType;
+        if (plateType) where.plate_material = plateType; // Corrected from plate_type to plate_material
         if (paperType) where.paper_type = paperType;
 
         const { count, rows } = await Artwork.findAndCountAll({
@@ -572,7 +572,7 @@ exports.getArtistPrints = async (req, res, next) => {
             title: artwork.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
             description: artwork.Translations.find(t => t.field_name === 'description')?.translated_content || '',
             technique: artwork.technique,
-            plateType: artwork.plate_type,
+            plateType: artwork.plate_material, // Corrected from plate_type to plate_material
             dimensions: artwork.dimensions,
             year: artwork.year,
             editionSize: artwork.edition_size,
