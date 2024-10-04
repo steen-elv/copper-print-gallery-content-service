@@ -6,7 +6,7 @@ class Artwork extends Model {
     static associate(models) {
         this.belongsToMany(models.Gallery, { through: models.GalleryArtwork });
         this.belongsTo(models.Artist, { foreignKey: 'artist_id' });
-        this.hasOne(models.ArtworkMetadata, { foreignKey: 'artwork_id' });
+        this.hasOne(models.ArtworkMetadata, { foreignKey: 'artwork_id', as: 'metadata' });
         this.hasMany(models.Image, { foreignKey: 'artwork_id' });
         this.belongsToMany(models.Tag, { through: models.ArtworkTag });
         this.hasMany(models.Translation, {

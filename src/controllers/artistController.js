@@ -538,17 +538,18 @@ exports.getArtistPrints = async (req, res, next) => {
         }
 
         const where = { artist_id: artist.id };
-        if (technique) where.technique = technique;
-        if (year) where.year = year;
-        if (plateType) where.plate_material = plateType; // Corrected from plate_type to plate_material
-        if (paperType) where.paper_type = paperType;
+        if (technique) where['$metadata.technique$'] = technique;
+        if (year) where['$metadata.year_created$'] = year;
+        if (plateType) where['$metadata.plate_material$'] = plateType;
+        if (paperType) where['$metadata.paper_type$'] = paperType;
 
         const { count, rows } = await Artwork.findAndCountAll({
             where,
             include: [
                 {
                     model: ArtworkMetadata,
-                    required: false  // Change this to false to allow artworks without metadata
+                    as: 'metadata',
+                    required: true
                 },
                 {
                     model: Translation,
@@ -564,36 +565,33 @@ exports.getArtistPrints = async (req, res, next) => {
                     required: false
                 }
             ],
-            order: [[ArtworkMetadata, 'year_created', 'DESC']],
+            order: [[{ model: ArtworkMetadata, as: 'metadata' }, 'year_created', 'DESC']],
             limit: Number(limit),
             offset: Number(offset),
             distinct: true,
             subQuery: false
         });
 
-        const prints = rows.map(artwork => {
-            const metadata = artwork.ArtworkMetadata || {};
-            return {
-                id: artwork.id,
-                title: artwork.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
-                description: artwork.Translations.find(t => t.field_name === 'description')?.translated_content || '',
-                artistName: metadata.artist_name || artist.username,
-                yearCreated: metadata.year_created,
-                medium: metadata.medium,
-                technique: metadata.technique,
-                dimensions: metadata.dimensions,
-                editionInfo: metadata.edition_info,
-                plateType: metadata.plate_material,
-                paperType: metadata.paper_type,
-                inkType: metadata.ink_type,
-                printingPress: metadata.printing_press,
-                availability: metadata.availability,
-                price: metadata.price,
-                thumbnailUrl: artwork.Images[0]?.public_url || null,
-                createdAt: artwork.created_at,
-                updatedAt: artwork.updated_at
-            };
-        });
+        const prints = rows.map(artwork => ({
+            id: artwork.id,
+            title: artwork.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
+            description: artwork.Translations.find(t => t.field_name === 'description')?.translated_content || '',
+            artistName: artwork.metadata.artist_name,
+            yearCreated: artwork.metadata.year_created,
+            medium: artwork.metadata.medium,
+            technique: artwork.metadata.technique,
+            dimensions: artwork.metadata.dimensions,
+            editionInfo: artwork.metadata.edition_info,
+            plateType: artwork.metadata.plate_material,
+            paperType: artwork.metadata.paper_type,
+            inkType: artwork.metadata.ink_type,
+            printingPress: artwork.metadata.printing_press,
+            availability: artwork.metadata.availability,
+            price: artwork.metadata.price,
+            thumbnailUrl: artwork.Images[0]?.public_url || null,
+            createdAt: artwork.created_at,
+            updatedAt: artwork.updated_at
+        }));
 
         res.json({
             prints,
