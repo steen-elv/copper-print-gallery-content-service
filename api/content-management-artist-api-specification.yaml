@@ -232,10 +232,12 @@ paths:
       x-eov-operation-handler: artistController
       summary: Create a new print
       description: Creates a new print for the authenticated artist
+      tags:
+        - prints
       requestBody:
         $ref: '#/components/requestBodies/PrintCreate'
       responses:
-        '201':
+        '202':
           $ref: '#/components/responses/PrintResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -371,43 +373,38 @@ components:
 
 
     ArtistPrint:
-      type: object
-      properties:
-        id:
-          type: integer
-        title:
-          type: string
-        description:
-          type: string
-        technique:
-          type: string
-        plateType:
-          type: string
-        dimensions:
-          type: string
-        year:
-          type: integer
-        editionSize:
-          type: integer
-        editionNumber:
-          type: integer
-        paperType:
-          type: string
-        inkType:
-          type: string
-        printingPress:
-          type: string
-        status:
-          type: string
-          enum: [ draft, published ]
-        artistNotes:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
+        type: object
+        properties:
+          id:
+            type: integer
+            description: The ID of the created artwork
+          title:
+            type: string
+          description:
+            type: string
+          technique:
+            type: string
+          plateType:
+            type: string
+          dimensions:
+            type: string
+          year:
+            type: integer
+          editionInfo:
+            type: string
+          paperType:
+            type: string
+          inkType:
+            type: string
+          printingPress:
+            type: string
+          imageProcessingStatus:
+            type: string
+            enum: [processing, completed, failed]
+            description: The status of image processing
+          baseImageId:
+            type: string
+            description: The base ID for the image, to be used for all versions
 
     ArtistPrintDetail:
       allOf:
@@ -442,9 +439,6 @@ components:
           type: string
         thumbnailUrl:
           type: string
-        status:
-          type: string
-          enum: [ draft, published ]
 
     ImageVersion:
       type: object
@@ -584,11 +578,9 @@ components:
               - id: 101
                 title: "The Little Mermaid"
                 thumbnailUrl: "https://cdn.copperprintgallery.com/thumbnails/little-mermaid-etching.jpg"
-                status: "published"
               - id: 102
                 title: "Nyhavn Canal"
                 thumbnailUrl: "https://cdn.copperprintgallery.com/thumbnails/nyhavn-canal-etching.jpg"
-                status: "draft"
 
     GalleryPrintsResponse:
       description: Successful response with list of prints in a gallery and their order
@@ -625,13 +617,11 @@ components:
                 plateType: "Copper"
                 dimensions: "30cm x 40cm"
                 year: 2023
-                editionSize: 50
+                editionInfo: "8/50"
                 editionNumber: 1
                 paperType: "Hahnemühle"
                 inkType: "Oil-based"
                 printingPress: "Etching Press Model X"
-                status: "published"
-                artistNotes: "Inspired by early morning light on the statue"
                 createdAt: "2023-07-01T10:00:00Z"
                 updatedAt: "2023-07-01T10:00:00Z"
               - id: 102
@@ -641,13 +631,11 @@ components:
                 plateType: "Copper"
                 dimensions: "25cm x 35cm"
                 year: 2023
-                editionSize: 75
+                editionInfo: "6/75"
                 editionNumber: 1
                 paperType: "Somerset Velvet"
                 inkType: "Water-based"
                 printingPress: "Aquatint Press Model Y"
-                status: "draft"
-                artistNotes: "Experimenting with vivid color contrasts"
                 createdAt: "2023-07-02T11:00:00Z"
                 updatedAt: "2023-07-02T11:00:00Z"
             totalCount: 2
@@ -668,15 +656,15 @@ components:
             plateType: "Copper"
             dimensions: "30cm x 40cm"
             year: 2023
-            editionSize: 50
+            editionInfo: "5/50"
             editionNumber: 1
             paperType: "Hahnemühle"
             inkType: "Oil-based"
             printingPress: "Etching Press Model X"
-            status: "published"
-            artistNotes: "Inspired by early morning light on the statue"
             createdAt: "2023-07-01T10:00:00Z"
             updatedAt: "2023-07-01T10:00:00Z"
+            imageProcessingStatus: "completed"
+
 
     PrintDetailResponse:
       description: Successful response with detailed print information
@@ -692,13 +680,12 @@ components:
             plateType: "Copper"
             dimensions: "30cm x 40cm"
             year: 2023
-            editionSize: 50
+            editionInfo: "5/50"
             editionNumber: 1
             paperType: "Hahnemühle"
             inkType: "Oil-based"
             printingPress: "Etching Press Model X"
-            status: "published"
-            artistNotes: "Inspired by early morning light on the statue"
+            imageProcessingStatus: "Completed"
             createdAt: "2023-07-01T10:00:00Z"
             updatedAt: "2023-07-01T10:00:00Z"
             images:
@@ -839,7 +826,7 @@ components:
       description: Request body for creating a new print
       required: true
       content:
-        application/json:
+        multipart/form-data:
           schema:
             type: object
             required:
@@ -848,7 +835,8 @@ components:
               - plateType
               - dimensions
               - year
-              - editionSize
+              - editionInfo
+              - image
             properties:
               title:
                 type: string
@@ -862,7 +850,7 @@ components:
                 type: string
               year:
                 type: integer
-              editionSize:
+              editionInfo:
                 type: integer
               paperType:
                 type: string
@@ -870,11 +858,24 @@ components:
                 type: string
               printingPress:
                 type: string
-              status:
+              artist_name:
                 type: string
-                enum: [ draft, published ]
-              artistNotes:
+              style_movement:
                 type: string
+              location:
+                type: string
+              availability:
+                type: string
+              price:
+                type: number
+              image:
+                type: string
+                description: The original version of the print image
+                format: binary
+              language:
+                type: string
+                description: > 
+                  Language code for title and description (default: artist's default language)
           example:
             title: "Øresund Bridge"
             description: "A detailed etching of the Øresund Bridge connecting Denmark and Sweden"
@@ -882,12 +883,10 @@ components:
             plateType: "Copper"
             dimensions: "40cm x 60cm"
             year: 2023
-            editionSize: 50
+            editionInfo: "5/50"
             paperType: "Somerset Velvet"
             inkType: "Oil-based"
             printingPress: "Etching Press Model Z"
-            status: "draft"
-            artistNotes: "Focusing on the interplay of light and shadow on the bridge structure"
 
     PrintUpdate:
       description: Request body for updating an existing print
@@ -909,24 +908,17 @@ components:
                 type: string
               year:
                 type: integer
-              editionSize:
-                type: integer
+              editionInfo:
+                type: string
               paperType:
                 type: string
               inkType:
                 type: string
               printingPress:
                 type: string
-              status:
-                type: string
-                enum: [ draft, published ]
-              artistNotes:
-                type: string
           example:
             title: "Øresund Bridge at Sunset"
             description: "An updated etching showcasing the Øresund Bridge bathed in warm sunset hues"
-            status: "published"
-            artistNotes: "Refined to emphasize the golden light of sunset on the bridge"
 
   securitySchemes:
     BearerAuth:
