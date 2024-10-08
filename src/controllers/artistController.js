@@ -746,3 +746,66 @@ exports.createPrint = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.getArtistPrintDetails = async (req, res, next) => {
+    try {
+        const { printId } = req.params;
+        const { language = 'en' } = req.query;
+
+        const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
+        if (!artist) {
+            return res.status(404).json({ error: 'Artist not found' });
+        }
+
+        const artwork = await Artwork.findOne({
+            where: { id: printId, artist_id: artist.id },
+            include: [
+                {
+                    model: ArtworkMetadata,
+                    required: true
+                },
+                {
+                    model: Translation,
+                    where: { language_code: language },
+                    required: false
+                },
+                {
+                    model: Image,
+                    required: false
+                }
+            ]
+        });
+
+        if (!artwork) {
+            return res.status(404).json({ error: 'Print not found' });
+        }
+
+        const response = {
+            id: artwork.id,
+            title: artwork.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
+            description: artwork.Translations.find(t => t.field_name === 'description')?.translated_content || '',
+            technique: artwork.ArtworkMetadata.technique,
+            plateType: artwork.ArtworkMetadata.plate_material,
+            dimensions: artwork.ArtworkMetadata.dimensions,
+            year: artwork.ArtworkMetadata.year_created,
+            editionInfo: artwork.ArtworkMetadata.edition_info,
+            paperType: artwork.ArtworkMetadata.paper_type,
+            inkType: artwork.ArtworkMetadata.ink_type,
+            printingPress: artwork.ArtworkMetadata.printing_press,
+            status: artwork.ArtworkMetadata.availability,
+            artistNotes: artwork.ArtworkMetadata.artist_notes,
+            images: artwork.Images.map(image => ({
+                version: image.version,
+                url: image.public_url,
+                width: image.width,
+                height: image.height
+            })),
+            createdAt: artwork.created_at,
+            updatedAt: artwork.updated_at
+        };
+
+        res.json(response);
+    } catch (error) {
+        next(error);
+    }
+};

@@ -39,6 +39,7 @@ app.get('/api/v1/artist/prints', artistController.getArtistPrints);
 // Configure multer for file uploads in tests
 const upload = multer({ storage: multer.memoryStorage() });
 app.post('/api/v1/artist/prints', upload.single('image'), artistController.createPrint);
+app.get('/api/v1/artist/prints/:printId', artistController.getArtistPrintDetails);
 
 describe('Artist Controller', () => {
     let testArtist;
@@ -1313,6 +1314,106 @@ describe('Artist Controller', () => {
         });
 
         // Add more tests as needed...
+    });
+
+    describe('getArtistPrintDetails', () => {
+        let testArtwork;
+
+        beforeEach(async () => {
+            testArtwork = await Artwork.create({ artist_id: testArtist.id });
+            await ArtworkMetadata.create({
+                artwork_id: testArtwork.id,
+                artist_name: testArtist.username,
+                technique: 'Etching',
+                year_created: 2023,
+                plate_material: 'Copper',
+                paper_type: 'Cotton',
+                dimensions: '20x30cm',
+                edition_info: 'Edition of 50',
+                ink_type: 'Oil-based',
+                printing_press: 'Test Press',
+                availability: 'Available',
+                artist_notes: 'Test notes'
+            });
+            await Translation.create({
+                entity_id: testArtwork.id,
+                entity_type: 'Artwork',
+                field_name: 'title',
+                translated_content: 'Test Artwork',
+                language_code: 'en'
+            });
+            await Translation.create({
+                entity_id: testArtwork.id,
+                entity_type: 'Artwork',
+                field_name: 'description',
+                translated_content: 'Test Description',
+                language_code: 'en'
+            });
+            await Image.create({
+                artwork_id: testArtwork.id,
+                version: 'thumbnail',
+                public_url: 'https://example.com/thumbnail.jpg',
+                width: 200,
+                height: 200
+            });
+        });
+
+        it('should return details of a specific print', async () => {
+            const response = await request(app)
+                .get(`/api/v1/artist/prints/${testArtwork.id}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toMatchObject({
+                id: testArtwork.id,
+                title: 'Test Artwork',
+                description: 'Test Description',
+                technique: 'Etching',
+                plateType: 'Copper',
+                dimensions: '20x30cm',
+                year: 2023,
+                editionInfo: 'Edition of 50',
+                paperType: 'Cotton',
+                inkType: 'Oil-based',
+                printingPress: 'Test Press',
+                status: 'Available',
+                artistNotes: 'Test notes',
+                images: [
+                    {
+                        version: 'thumbnail',
+                        url: 'https://example.com/thumbnail.jpg',
+                        width: 200,
+                        height: 200
+                    }
+                ]
+            });
+        });
+
+        it('should return 404 if print is not found', async () => {
+            const response = await request(app)
+                .get('/api/v1/artist/prints/999999')
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            expect(response.body.error).toBe('Print not found');
+        });
+
+        it('should return 404 if print belongs to another artist', async () => {
+            const otherArtist = await Artist.create({
+                keycloak_id: 'other-artist-id',
+                username: 'otherartist',
+                email: 'other@example.com',
+                default_language: 'en'
+            });
+            const otherArtwork = await Artwork.create({ artist_id: otherArtist.id });
+
+            const response = await request(app)
+                .get(`/api/v1/artist/prints/${otherArtwork.id}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(404);
+            expect(response.body.error).toBe('Print not found');
+        });
     });
 });
 
