@@ -27,6 +27,12 @@ for (const apiSpec of apiSpecs) {
             operationHandlers: path.join(__dirname, 'controllers'),
             validateRequests: true,
             validateResponses: true,
+            fileUploader: {
+                storage: OpenApiValidator.multer.memoryStorage(),
+                limits: {
+                    fileSize: 5 * 1024 * 1024, // 5MB limit
+                },
+            },
         })
     );
 }

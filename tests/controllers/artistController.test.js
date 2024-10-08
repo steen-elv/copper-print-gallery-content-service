@@ -1,10 +1,12 @@
 const request = require('supertest');
 const express = require('express');
 const { S3Client } = require("@aws-sdk/client-s3");
+const axios = require('axios');
 const extractJwtInfo = require('../../src/middleware/jwtMiddleware');
 const jwt = require('jsonwebtoken');
 
 jest.mock('@aws-sdk/client-s3');
+jest.mock('axios');
 jest.mock('../../src/config/database');
 const sequelize = require('../../src/config/database');
 
@@ -1240,6 +1242,7 @@ describe('Artist Controller', () => {
             validToken = 'valid-token';
 
             S3Client.prototype.send = jest.fn().mockResolvedValue({});
+            axios.post = jest.fn().mockResolvedValue({});
         });
 
         it('should create a new print successfully', async () => {
@@ -1250,12 +1253,15 @@ describe('Artist Controller', () => {
                 plateType: 'Copper',
                 dimensions: '20x30cm',
                 year: 2023,
-                editionSize: 50,
+                editionInfo: 'Edition of 50',
                 paperType: 'Cotton',
                 inkType: 'Oil-based',
                 printingPress: 'Test Press',
-                status: 'draft',
-                artistNotes: 'Test notes'
+                artist_name: 'Test Artist',
+                style_movement: 'Test Movement',
+                location: 'Test Location',
+                availability: 'Available',
+                price: 1000
             };
 
             const response = await request(app)
@@ -1264,6 +1270,7 @@ describe('Artist Controller', () => {
                 .field(printData)
                 .attach('image', Buffer.from('fake-image'), 'test-image.jpg');
 
+            console.log(JSON.stringify(response.error));
             expect(response.status).toBe(202);
             expect(response.body).toMatchObject({
                 ...printData,
@@ -1278,6 +1285,7 @@ describe('Artist Controller', () => {
             // Check that the metadata was created
             const metadata = await ArtworkMetadata.findOne({ where: { artwork_id: artwork.id } });
             expect(metadata).toBeTruthy();
+            expect(metadata.medium).toBe(printData.technique);
 
             // Check that the translations were created
             const titleTranslation = await Translation.findOne({
@@ -1291,6 +1299,9 @@ describe('Artist Controller', () => {
 
             // Check that S3 upload was called
             expect(S3Client.prototype.send).toHaveBeenCalled();
+
+            // Check that image processing was initiated
+            expect(axios.post).toHaveBeenCalled();
         });
 
         it('should return 400 if image is not provided', async () => {

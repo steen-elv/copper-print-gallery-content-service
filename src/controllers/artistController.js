@@ -635,18 +635,22 @@ exports.getArtistPrints = async (req, res, next) => {
 
 const { v4: uuidv4 } = require('uuid');
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const axios = require('axios');
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 const imageProcessingServiceUrl = process.env.IMAGE_PROCESSING_SERVICE_URL;
 
 exports.createPrint = async (req, res, next) => {
+    console.log(JSON.stringify(req.body));
     const transaction = await sequelize.transaction();
     try {
         const {
             title, description, technique, plateType, dimensions,
-            year, editionSize, paperType, inkType, printingPress,
-            status = 'draft', artistNotes, language
+            year, editionInfo, paperType, inkType, printingPress,
+            artist_name, style_movement, location, availability, price
         } = req.body;
+
+        const language = req.query.language;
 
         const image = req.file;
         if (!image) {
@@ -681,18 +685,20 @@ exports.createPrint = async (req, res, next) => {
         // Create ArtworkMetadata
         await ArtworkMetadata.create({
             artwork_id: artwork.id,
-            artist_name: artist.username,
+            artist_name: artist_name || artist.username,
             year_created: year,
-            medium: 'Printmaking',
+            medium: technique, // Using technique as medium
             technique,
             dimensions,
-            edition_info: `Edition of ${editionSize}`,
+            edition_info: editionInfo,
             plate_material: plateType,
             paper_type: paperType,
             ink_type: inkType,
             printing_press: printingPress,
-            availability: status,
-            price: null // Assuming price is not provided in this endpoint
+            style_movement,
+            location,
+            availability,
+            price
         }, { transaction });
 
         // Create Translations
@@ -721,9 +727,7 @@ exports.createPrint = async (req, res, next) => {
             originalImageReference: `s3://${process.env.S3_BUCKET_NAME}/${s3Key}`
         };
 
-        // In a real scenario, this would be an actual API call
-        // For now, we'll just log the payload
-        console.log('Initiating image processing with payload:', imageProcessingPayload);
+        await axios.post(imageProcessingServiceUrl, imageProcessingPayload);
 
         await transaction.commit();
 
@@ -735,16 +739,20 @@ exports.createPrint = async (req, res, next) => {
             plateType,
             dimensions,
             year,
-            editionSize,
+            editionInfo,
             paperType,
             inkType,
             printingPress,
-            status,
-            artistNotes,
+            artist_name,
+            style_movement,
+            location,
+            availability,
+            price,
             imageProcessingStatus: 'processing',
             baseImageId
         });
     } catch (error) {
+        console.error('Error in createPrint', error);
         await transaction.rollback();
         next(error);
     }
