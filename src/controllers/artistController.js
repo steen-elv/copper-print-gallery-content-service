@@ -532,8 +532,6 @@ exports.getArtistPrints = async (req, res, next) => {
         const { page = 1, limit = 20, language = 'en', technique, year, plateType, paperType } = req.query;
         const offset = (page - 1) * limit;
 
-        console.log(`Debug: Page ${page}, Limit ${limit}, Offset ${offset}`);
-
         const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
         if (!artist) {
             return res.status(404).json({ error: 'Artist not found' });
@@ -546,9 +544,6 @@ exports.getArtistPrints = async (req, res, next) => {
         if (year) metadataWhereClause.year_created = Number(year);
         if (plateType) metadataWhereClause.plate_material = plateType;
         if (paperType) metadataWhereClause.paper_type = paperType;
-
-        console.log('Debug: Where clause', JSON.stringify(whereClause));
-        console.log('Debug: Where metadataWhereClause', JSON.stringify(metadataWhereClause));
 
         // First, get the total count and IDs of artworks
         const { count, rows: artworkIds } = await Artwork.findAndCountAll({
@@ -568,8 +563,6 @@ exports.getArtistPrints = async (req, res, next) => {
             distinct: true,
             subQuery: false
         });
-
-        console.log(`Debug: Total count ${count}, Artwork IDs returned [${artworkIds.map(a => a.id)}]`);
 
         // Now, fetch the full data for these artworks
         const artworks = await Artwork.findAll({
@@ -618,9 +611,6 @@ exports.getArtistPrints = async (req, res, next) => {
             updatedAt: artwork.updated_at
         }));
 
-        console.log(`Debug: Prints mapped ${prints.length}`);
-        console.log(`Debug: Prints ${JSON.stringify(prints)}`);
-
         res.json({
             prints,
             totalCount: count,
@@ -641,7 +631,6 @@ const s3Client = new S3Client({ region: process.env.AWS_REGION });
 const imageProcessingServiceUrl = process.env.IMAGE_PROCESSING_SERVICE_URL;
 
 exports.createPrint = async (req, res, next) => {
-    console.log(JSON.stringify(req.body));
     const transaction = await sequelize.transaction();
     try {
         const {
@@ -652,11 +641,12 @@ exports.createPrint = async (req, res, next) => {
 
         const language = req.query.language;
 
-        const image = req.file;
-        if (!image) {
+        if (!req.file) {
             await transaction.rollback();
             return res.status(400).json({ error: 'Image file is required' });
         }
+
+        const image = req.file;
 
         const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
         if (!artist) {
@@ -686,8 +676,8 @@ exports.createPrint = async (req, res, next) => {
         await ArtworkMetadata.create({
             artwork_id: artwork.id,
             artist_name: artist_name || artist.username,
-            year_created: year,
-            medium: technique, // Using technique as medium
+            year_created: parseInt(year, 10),  // Convert year to integer
+            medium: technique,
             technique,
             dimensions,
             edition_info: editionInfo,
@@ -698,7 +688,7 @@ exports.createPrint = async (req, res, next) => {
             style_movement,
             location,
             availability,
-            price
+            price: price ? parseFloat(price) : null  // Convert price to float if present
         }, { transaction });
 
         // Create Translations
@@ -738,7 +728,7 @@ exports.createPrint = async (req, res, next) => {
             technique,
             plateType,
             dimensions,
-            year,
+            year: parseInt(year, 10),  // Convert year to integer in the response
             editionInfo,
             paperType,
             inkType,
@@ -747,12 +737,11 @@ exports.createPrint = async (req, res, next) => {
             style_movement,
             location,
             availability,
-            price,
+            price: price ? parseFloat(price) : null,  // Convert price to float in the response if present
             imageProcessingStatus: 'processing',
             baseImageId
         });
     } catch (error) {
-        console.error('Error in createPrint', error);
         await transaction.rollback();
         next(error);
     }

@@ -1177,8 +1177,6 @@ describe('Artist Controller', () => {
                 .query({ page: 1, limit: 2 })
                 .set('Authorization', `Bearer ${validToken}`);
 
-            console.log('Debug: Response body', JSON.stringify(response.body, null, 2));
-
             expect(response.status).toBe(200);
             expect(response.body.prints).toHaveLength(2);
             expect(response.body.totalCount).toBe(8); // 3 original + 5 new artworks
@@ -1252,7 +1250,7 @@ describe('Artist Controller', () => {
                 technique: 'Etching',
                 plateType: 'Copper',
                 dimensions: '20x30cm',
-                year: 2023,
+                year: '2023',  // Note: This is a string, as it would be in form data
                 editionInfo: 'Edition of 50',
                 paperType: 'Cotton',
                 inkType: 'Oil-based',
@@ -1261,7 +1259,7 @@ describe('Artist Controller', () => {
                 style_movement: 'Test Movement',
                 location: 'Test Location',
                 availability: 'Available',
-                price: '1000'
+                price: '1000'  // Note: This is a string, as it would be in form data
             };
 
             const response = await request(app)
@@ -1270,15 +1268,14 @@ describe('Artist Controller', () => {
                 .field(printData)
                 .attach('image', Buffer.from('fake-image'), 'test-image.jpg');
 
-            console.log(JSON.stringify(response.error));
-
             expect(response.status).toBe(202);
             expect(response.body).toMatchObject({
                 ...printData,
+                year: 2023,  // Expect this to be a number
+                price: 1000,  // Expect this to be a number
                 imageProcessingStatus: 'processing',
                 baseImageId: expect.any(String)
             });
-
             // Check that the artwork was created in the database
             const artwork = await Artwork.findOne({ where: { id: response.body.id } });
             expect(artwork).toBeTruthy();
