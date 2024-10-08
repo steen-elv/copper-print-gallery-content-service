@@ -1,10 +1,10 @@
 const request = require('supertest');
 const express = require('express');
-const AWS = require('aws-sdk');
+const { S3Client } = require("@aws-sdk/client-s3");
 const extractJwtInfo = require('../../src/middleware/jwtMiddleware');
 const jwt = require('jsonwebtoken');
 
-jest.mock('aws-sdk');
+jest.mock('@aws-sdk/client-s3');
 jest.mock('../../src/config/database');
 const sequelize = require('../../src/config/database');
 
@@ -1239,9 +1239,7 @@ describe('Artist Controller', () => {
 
             validToken = 'valid-token';
 
-            AWS.S3.prototype.putObject = jest.fn().mockReturnValue({
-                promise: jest.fn().mockResolvedValue({})
-            });
+            S3Client.prototype.send = jest.fn().mockResolvedValue({});
         });
 
         it('should create a new print successfully', async () => {
@@ -1292,7 +1290,7 @@ describe('Artist Controller', () => {
             expect(titleTranslation).toBeTruthy();
 
             // Check that S3 upload was called
-            expect(AWS.S3.prototype.putObject).toHaveBeenCalled();
+            expect(S3Client.prototype.send).toHaveBeenCalled();
         });
 
         it('should return 400 if image is not provided', async () => {

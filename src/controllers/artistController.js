@@ -634,9 +634,9 @@ exports.getArtistPrints = async (req, res, next) => {
 };
 
 const { v4: uuidv4 } = require('uuid');
-const AWS = require('aws-sdk');
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 
-const s3 = new AWS.S3();
+const s3Client = new S3Client({ region: process.env.AWS_REGION });
 const imageProcessingServiceUrl = process.env.IMAGE_PROCESSING_SERVICE_URL;
 
 exports.createPrint = async (req, res, next) => {
@@ -665,12 +665,13 @@ exports.createPrint = async (req, res, next) => {
         const s3Key = `originals/${artist.id}/${baseImageId}.${fileExtension}`;
 
         // Upload image to S3
-        await s3.putObject({
+        const putObjectCommand = new PutObjectCommand({
             Bucket: process.env.S3_BUCKET_NAME,
             Key: s3Key,
             Body: image.buffer,
             ContentType: image.mimetype
-        }).promise();
+        });
+        await s3Client.send(putObjectCommand);
 
         // Create Artwork
         const artwork = await Artwork.create({
