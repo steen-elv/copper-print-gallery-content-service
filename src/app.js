@@ -2,6 +2,7 @@
 
 const express = require('express');
 const path = require('path');
+const multer = require('multer');
 const OpenApiValidator = require('express-openapi-validator');
 const { errorHandler } = require('./middleware/errorMiddleware');
 const extractJwtInfo = require('./middleware/jwtMiddleware');
@@ -28,9 +29,9 @@ for (const apiSpec of apiSpecs) {
             validateRequests: true,
             validateResponses: true,
             fileUploader: {
-                storage: OpenApiValidator.multer.memoryStorage(),
+                storage: multer.memoryStorage(),
                 limits: {
-                    fileSize: 5 * 1024 * 1024, // 5MB limit
+                    fileSize: 50 * 1024 * 1024, // 5MB limit
                 },
             },
         })

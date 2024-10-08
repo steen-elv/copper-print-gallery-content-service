@@ -1,5 +1,6 @@
 const request = require('supertest');
 const express = require('express');
+const multer = require('multer');
 const { S3Client } = require("@aws-sdk/client-s3");
 const axios = require('axios');
 const extractJwtInfo = require('../../src/middleware/jwtMiddleware');
@@ -35,7 +36,9 @@ app.put('/api/v1/artist/galleries/:galleryId/prints', artistController.updatePri
 app.post('/api/v1/artist/galleries/:galleryId/prints/:printId', artistController.addPrintToGallery);
 app.delete('/api/v1/artist/galleries/:galleryId/prints/:printId', artistController.removePrintFromGallery);
 app.get('/api/v1/artist/prints', artistController.getArtistPrints);
-app.post('/api/v1/artist/prints', artistController.createPrint);
+// Configure multer for file uploads in tests
+const upload = multer({ storage: multer.memoryStorage() });
+app.post('/api/v1/artist/prints', upload.single('image'), artistController.createPrint);
 
 describe('Artist Controller', () => {
     let testArtist;
@@ -1224,7 +1227,6 @@ describe('Artist Controller', () => {
 
     describe('createPrint', () => {
         let testArtist;
-        let validToken;
 
         beforeEach(async () => {
             await Artist.destroy({ where: {} });
@@ -1238,8 +1240,6 @@ describe('Artist Controller', () => {
                 email: 'test@example.com',
                 default_language: 'en'
             });
-
-            validToken = 'valid-token';
 
             S3Client.prototype.send = jest.fn().mockResolvedValue({});
             axios.post = jest.fn().mockResolvedValue({});
@@ -1261,7 +1261,7 @@ describe('Artist Controller', () => {
                 style_movement: 'Test Movement',
                 location: 'Test Location',
                 availability: 'Available',
-                price: 1000
+                price: '1000'
             };
 
             const response = await request(app)
@@ -1271,6 +1271,7 @@ describe('Artist Controller', () => {
                 .attach('image', Buffer.from('fake-image'), 'test-image.jpg');
 
             console.log(JSON.stringify(response.error));
+
             expect(response.status).toBe(202);
             expect(response.body).toMatchObject({
                 ...printData,
