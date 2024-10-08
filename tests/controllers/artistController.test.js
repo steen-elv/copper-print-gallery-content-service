@@ -1,9 +1,10 @@
 const request = require('supertest');
 const express = require('express');
+const AWS = require('aws-sdk');
 const extractJwtInfo = require('../../src/middleware/jwtMiddleware');
 const jwt = require('jsonwebtoken');
 
-
+jest.mock('aws-sdk');
 jest.mock('../../src/config/database');
 const sequelize = require('../../src/config/database');
 
@@ -32,6 +33,7 @@ app.put('/api/v1/artist/galleries/:galleryId/prints', artistController.updatePri
 app.post('/api/v1/artist/galleries/:galleryId/prints/:printId', artistController.addPrintToGallery);
 app.delete('/api/v1/artist/galleries/:galleryId/prints/:printId', artistController.removePrintFromGallery);
 app.get('/api/v1/artist/prints', artistController.getArtistPrints);
+app.post('/api/v1/artist/prints', artistController.createPrint);
 
 describe('Artist Controller', () => {
     let testArtist;
@@ -1216,6 +1218,94 @@ describe('Artist Controller', () => {
             expect(response.status).toBe(404);
             expect(response.body.error).toBe('Artist not found');
         });
+    });
+
+    describe('createPrint', () => {
+        let testArtist;
+        let validToken;
+
+        beforeEach(async () => {
+            await Artist.destroy({ where: {} });
+            await Artwork.destroy({ where: {} });
+            await ArtworkMetadata.destroy({ where: {} });
+            await Translation.destroy({ where: {} });
+
+            testArtist = await Artist.create({
+                keycloak_id: 'test-keycloak-id',
+                username: 'testartist',
+                email: 'test@example.com',
+                default_language: 'en'
+            });
+
+            validToken = 'valid-token';
+
+            AWS.S3.prototype.putObject = jest.fn().mockReturnValue({
+                promise: jest.fn().mockResolvedValue({})
+            });
+        });
+
+        it('should create a new print successfully', async () => {
+            const printData = {
+                title: 'Test Print',
+                description: 'A test print description',
+                technique: 'Etching',
+                plateType: 'Copper',
+                dimensions: '20x30cm',
+                year: 2023,
+                editionSize: 50,
+                paperType: 'Cotton',
+                inkType: 'Oil-based',
+                printingPress: 'Test Press',
+                status: 'draft',
+                artistNotes: 'Test notes'
+            };
+
+            const response = await request(app)
+                .post('/api/v1/artist/prints')
+                .set('Authorization', `Bearer ${validToken}`)
+                .field(printData)
+                .attach('image', Buffer.from('fake-image'), 'test-image.jpg');
+
+            expect(response.status).toBe(202);
+            expect(response.body).toMatchObject({
+                ...printData,
+                imageProcessingStatus: 'processing',
+                baseImageId: expect.any(String)
+            });
+
+            // Check that the artwork was created in the database
+            const artwork = await Artwork.findOne({ where: { id: response.body.id } });
+            expect(artwork).toBeTruthy();
+
+            // Check that the metadata was created
+            const metadata = await ArtworkMetadata.findOne({ where: { artwork_id: artwork.id } });
+            expect(metadata).toBeTruthy();
+
+            // Check that the translations were created
+            const titleTranslation = await Translation.findOne({
+                where: {
+                    entity_id: artwork.id,
+                    entity_type: 'Artwork',
+                    field_name: 'title'
+                }
+            });
+            expect(titleTranslation).toBeTruthy();
+
+            // Check that S3 upload was called
+            expect(AWS.S3.prototype.putObject).toHaveBeenCalled();
+        });
+
+        it('should return 400 if image is not provided', async () => {
+            const response = await request(app)
+                .post('/api/v1/artist/prints')
+                .set('Authorization', `Bearer ${validToken}`)
+                .field('title', 'Test Print');
+
+            expect(response.status).toBe(400);
+            expect(response.body.error).toBe('Image file is required');
+        });
+
+        // Add more tests as needed...
     });
 });
 

@@ -632,3 +632,119 @@ exports.getArtistPrints = async (req, res, next) => {
         next(error);
     }
 };
+
+const { v4: uuidv4 } = require('uuid');
+const AWS = require('aws-sdk');
+
+const s3 = new AWS.S3();
+const imageProcessingServiceUrl = process.env.IMAGE_PROCESSING_SERVICE_URL;
+
+exports.createPrint = async (req, res, next) => {
+    const transaction = await sequelize.transaction();
+    try {
+        const {
+            title, description, technique, plateType, dimensions,
+            year, editionSize, paperType, inkType, printingPress,
+            status = 'draft', artistNotes, language
+        } = req.body;
+
+        const image = req.file;
+        if (!image) {
+            await transaction.rollback();
+            return res.status(400).json({ error: 'Image file is required' });
+        }
+
+        const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
+        if (!artist) {
+            await transaction.rollback();
+            return res.status(404).json({ error: 'Artist not found' });
+        }
+
+        const baseImageId = uuidv4();
+        const fileExtension = image.originalname.split('.').pop();
+        const s3Key = `originals/${artist.id}/${baseImageId}.${fileExtension}`;
+
+        // Upload image to S3
+        await s3.putObject({
+            Bucket: process.env.S3_BUCKET_NAME,
+            Key: s3Key,
+            Body: image.buffer,
+            ContentType: image.mimetype
+        }).promise();
+
+        // Create Artwork
+        const artwork = await Artwork.create({
+            artist_id: artist.id
+        }, { transaction });
+
+        // Create ArtworkMetadata
+        await ArtworkMetadata.create({
+            artwork_id: artwork.id,
+            artist_name: artist.username,
+            year_created: year,
+            medium: 'Printmaking',
+            technique,
+            dimensions,
+            edition_info: `Edition of ${editionSize}`,
+            plate_material: plateType,
+            paper_type: paperType,
+            ink_type: inkType,
+            printing_press: printingPress,
+            availability: status,
+            price: null // Assuming price is not provided in this endpoint
+        }, { transaction });
+
+        // Create Translations
+        const usedLanguage = language || artist.default_language;
+        await Translation.create({
+            entity_id: artwork.id,
+            entity_type: 'Artwork',
+            field_name: 'title',
+            translated_content: title,
+            language_code: usedLanguage
+        }, { transaction });
+
+        if (description) {
+            await Translation.create({
+                entity_id: artwork.id,
+                entity_type: 'Artwork',
+                field_name: 'description',
+                translated_content: description,
+                language_code: usedLanguage
+            }, { transaction });
+        }
+
+        // Initiate image processing
+        const imageProcessingPayload = {
+            baseImageId,
+            originalImageReference: `s3://${process.env.S3_BUCKET_NAME}/${s3Key}`
+        };
+
+        // In a real scenario, this would be an actual API call
+        // For now, we'll just log the payload
+        console.log('Initiating image processing with payload:', imageProcessingPayload);
+
+        await transaction.commit();
+
+        res.status(202).json({
+            id: artwork.id,
+            title,
+            description,
+            technique,
+            plateType,
+            dimensions,
+            year,
+            editionSize,
+            paperType,
+            inkType,
+            printingPress,
+            status,
+            artistNotes,
+            imageProcessingStatus: 'processing',
+            baseImageId
+        });
+    } catch (error) {
+        await transaction.rollback();
+        next(error);
+    }
+};
