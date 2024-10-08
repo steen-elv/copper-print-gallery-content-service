@@ -1320,20 +1320,28 @@ describe('Artist Controller', () => {
         let testArtwork;
 
         beforeEach(async () => {
-            testArtwork = await Artwork.create({ artist_id: testArtist.id });
+            testArtwork = await Artwork.create({
+                artist_id: testArtist.id,
+                created_at: new Date(),
+                updated_at: new Date(),
+                last_indexed: new Date()
+            });
             await ArtworkMetadata.create({
                 artwork_id: testArtwork.id,
-                artist_name: testArtist.username,
-                technique: 'Etching',
+                artist_name: 'Test Artist',
                 year_created: 2023,
-                plate_material: 'Copper',
-                paper_type: 'Cotton',
+                medium: 'Printmaking',
+                technique: 'Etching',
                 dimensions: '20x30cm',
                 edition_info: 'Edition of 50',
+                plate_material: 'Copper',
+                paper_type: 'Cotton',
                 ink_type: 'Oil-based',
                 printing_press: 'Test Press',
+                style_movement: 'Modern',
+                location: 'Studio A',
                 availability: 'Available',
-                artist_notes: 'Test notes'
+                price: 1000.00  // Optional field
             });
             await Translation.create({
                 entity_id: testArtwork.id,
@@ -1351,10 +1359,20 @@ describe('Artist Controller', () => {
             });
             await Image.create({
                 artwork_id: testArtwork.id,
-                version: 'thumbnail',
+                original_filename: 'test.jpg',
+                storage_bucket: 'test-bucket',
+                storage_path: '/test/path',
                 public_url: 'https://example.com/thumbnail.jpg',
                 width: 200,
-                height: 200
+                height: 200,
+                format: 'image/jpeg',
+                file_size: 1024,
+                version: 'thumbnail',
+                parent_version: null,
+                status: 'processed',
+                processed_at: new Date(),
+                created_at: new Date(),
+                updated_at: new Date()
             });
         });
 
@@ -1377,7 +1395,10 @@ describe('Artist Controller', () => {
                 inkType: 'Oil-based',
                 printingPress: 'Test Press',
                 status: 'Available',
-                artistNotes: 'Test notes',
+                artistName: 'Test Artist',
+                styleMovement: 'Modern',
+                location: 'Studio A',
+                price: 1000.00,
                 images: [
                     {
                         version: 'thumbnail',
@@ -1385,7 +1406,9 @@ describe('Artist Controller', () => {
                         width: 200,
                         height: 200
                     }
-                ]
+                ],
+                createdAt: expect.any(String),
+                updatedAt: expect.any(String)
             });
         });
 
@@ -1413,6 +1436,31 @@ describe('Artist Controller', () => {
 
             expect(response.status).toBe(404);
             expect(response.body.error).toBe('Print not found');
+        });
+
+        it('should return translations in the specified language', async () => {
+            await Translation.create({
+                entity_id: testArtwork.id,
+                entity_type: 'Artwork',
+                field_name: 'title',
+                translated_content: 'Testkunstverk',
+                language_code: 'no'
+            });
+            await Translation.create({
+                entity_id: testArtwork.id,
+                entity_type: 'Artwork',
+                field_name: 'description',
+                translated_content: 'Testbeskrivelse',
+                language_code: 'no'
+            });
+
+            const response = await request(app)
+                .get(`/api/v1/artist/prints/${testArtwork.id}?language=no`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.title).toBe('Testkunstverk');
+            expect(response.body.description).toBe('Testbeskrivelse');
         });
     });
 });

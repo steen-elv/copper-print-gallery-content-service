@@ -750,7 +750,7 @@ exports.createPrint = async (req, res, next) => {
 exports.getArtistPrintDetails = async (req, res, next) => {
     try {
         const { printId } = req.params;
-        const { language = 'en' } = req.query;
+        const { language } = req.query;
 
         const artist = await Artist.findOne({ where: { keycloak_id: req.keycloak_id } });
         if (!artist) {
@@ -762,11 +762,11 @@ exports.getArtistPrintDetails = async (req, res, next) => {
             include: [
                 {
                     model: ArtworkMetadata,
+                    as: 'metadata',
                     required: true
                 },
                 {
                     model: Translation,
-                    where: { language_code: language },
                     required: false
                 },
                 {
@@ -780,20 +780,25 @@ exports.getArtistPrintDetails = async (req, res, next) => {
             return res.status(404).json({ error: 'Print not found' });
         }
 
+        const usedLanguage = language || artist.default_language;
+
         const response = {
             id: artwork.id,
-            title: artwork.Translations.find(t => t.field_name === 'title')?.translated_content || 'Untitled',
-            description: artwork.Translations.find(t => t.field_name === 'description')?.translated_content || '',
-            technique: artwork.ArtworkMetadata.technique,
-            plateType: artwork.ArtworkMetadata.plate_material,
-            dimensions: artwork.ArtworkMetadata.dimensions,
-            year: artwork.ArtworkMetadata.year_created,
-            editionInfo: artwork.ArtworkMetadata.edition_info,
-            paperType: artwork.ArtworkMetadata.paper_type,
-            inkType: artwork.ArtworkMetadata.ink_type,
-            printingPress: artwork.ArtworkMetadata.printing_press,
-            status: artwork.ArtworkMetadata.availability,
-            artistNotes: artwork.ArtworkMetadata.artist_notes,
+            title: artwork.Translations.find(t => t.field_name === 'title' && t.language_code === usedLanguage)?.translated_content || 'Untitled',
+            description: artwork.Translations.find(t => t.field_name === 'description' && t.language_code === usedLanguage)?.translated_content || '',
+            technique: artwork.metadata.technique,
+            plateType: artwork.metadata.plate_material,
+            dimensions: artwork.metadata.dimensions,
+            year: artwork.metadata.year_created,
+            editionInfo: artwork.metadata.edition_info,
+            paperType: artwork.metadata.paper_type,
+            inkType: artwork.metadata.ink_type,
+            printingPress: artwork.metadata.printing_press,
+            status: artwork.metadata.availability,
+            artistName: artwork.metadata.artist_name,
+            styleMovement: artwork.metadata.style_movement,
+            location: artwork.metadata.location,
+            price: artwork.metadata.price,
             images: artwork.Images.map(image => ({
                 version: image.version,
                 url: image.public_url,
@@ -806,6 +811,7 @@ exports.getArtistPrintDetails = async (req, res, next) => {
 
         res.json(response);
     } catch (error) {
+        console.error('Error in getGalleries:', error);
         next(error);
     }
 };
