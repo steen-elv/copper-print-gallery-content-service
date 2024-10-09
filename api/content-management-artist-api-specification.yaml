@@ -252,6 +252,7 @@ paths:
       description: Retrieves details of a specific print created by the authenticated artist
       parameters:
         - $ref: '#/components/parameters/printId'
+        - $ref: '#/components/parameters/language'
       responses:
         '200':
           $ref: '#/components/responses/PrintDetailResponse'
@@ -405,6 +406,40 @@ components:
           baseImageId:
             type: string
             description: The base ID for the image, to be used for all versions
+          exifData:
+            $ref: '#/components/schemas/ExifData'
+          artistName:
+            type: string
+          styleMovement:
+            type: string
+          location:
+            type: string
+          price:
+            type: number
+          availability:
+            type: string
+          createdAt:
+            type: string
+            format: date-time
+          updatedAt:
+            type: string
+            format: date-time
+
+    ExifData:
+      type: object
+      properties:
+        camera:
+          type: string
+        lens:
+          type: string
+        exposureTime:
+          type: string
+        aperture:
+          type: string
+        iso:
+          type: integer
+        dateTimeOriginal:
+          type: string
 
     ArtistPrintDetail:
       allOf:
@@ -486,6 +521,13 @@ components:
       schema:
         type: integer
       description: Unique identifier of the gallery
+    language:
+      in: query
+      name: language
+      schema:
+        type: string
+      description: >
+        Language code for localized content (default: artist's default language)
     printId:
       in: path
       name: printId
